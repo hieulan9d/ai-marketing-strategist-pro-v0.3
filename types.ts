@@ -92,6 +92,7 @@ export interface KnowledgeData {
   uploadedKnowledge?: string; // New: Raw text content from uploaded documents
   visualStyle?: string; // New: AI Analysis of uploaded images
   videoStyle?: string;  // New: AI Analysis of uploaded videos
+  vaultContext?: string; // New: Context from Knowledge Vault files
   isConfirmed: boolean;
 }
 
@@ -195,6 +196,35 @@ export interface KOLData {
   isGenerating: boolean;
 }
 
+// --- INFOGRAPHIC MODULE TYPES (NEW) ---
+export interface InfographicStep {
+  icon: string; // Lucide icon name
+  label: string;
+  desc: string; // Short description < 20 words
+}
+
+export interface InfographicData {
+  hook: string;
+  steps: InfographicStep[];
+  key_stat: string;
+  brand_colors: {
+    primary: string;
+    secondary: string;
+  };
+}
+
+// --- KNOWLEDGE VAULT TYPES (NEW) ---
+export interface KnowledgeFile {
+  id: string;
+  name: string;
+  type: string; // MIME type or extension
+  size: number;
+  content: string; // Text content or Base64
+  preview?: string; // For images
+  description?: string; // Analysis of the image content
+  lastModified: number;
+}
+
 // ------------------------
 
 export enum StepStatus {
@@ -213,6 +243,9 @@ export interface AppState {
   spy: SpyData;
   repurposing: RepurposingData;
   kol: KOLData; // New KOL State
+  infographic: InfographicData | null; // New Infographic State
+  isGeneratingInfographic: boolean;
+  knowledgeVault: KnowledgeFile[]; // New Knowledge Vault State
 
   productInput: string;
   currentStep: number;

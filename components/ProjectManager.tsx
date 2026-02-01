@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as ProjectService from '../services/projectService';
+import { Edit2, Check, X } from 'lucide-react';
 
 interface ProjectManagerProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ interface ProjectManagerProps {
 
 const ProjectManager: React.FC<ProjectManagerProps> = ({ isOpen, onClose, onLoadProject, onNewProject, currentProjectId }) => {
   const [projects, setProjects] = useState<ProjectService.ProjectMetadata[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const refreshList = () => {
     const list = ProjectService.getProjectList();
@@ -30,6 +33,26 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ isOpen, onClose, onLoad
       ProjectService.deleteProjectFromStorage(id);
       refreshList();
     }
+  };
+
+  const startEditing = (e: React.MouseEvent, project: ProjectService.ProjectMetadata) => {
+    e.stopPropagation();
+    setEditingId(project.id);
+    setEditName(project.name);
+  };
+
+  const saveEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (editingId && editName.trim()) {
+        ProjectService.renameProjectInStorage(editingId, editName.trim());
+        setEditingId(null);
+        refreshList();
+    }
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
   };
 
   if (!isOpen) return null;
@@ -75,9 +98,36 @@ const ProjectManager: React.FC<ProjectManagerProps> = ({ isOpen, onClose, onLoad
                 `}
               >
                 <div className="flex-1 min-w-0">
-                   <h3 className={`font-bold text-sm truncate ${proj.id === currentProjectId ? 'text-emerald-800' : 'text-gray-800'}`}>
-                     {proj.name}
-                   </h3>
+                   {editingId === proj.id ? (
+                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                           <input 
+                              type="text" 
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="border border-emerald-500 rounded px-2 py-1 text-sm w-full focus:outline-none"
+                              autoFocus
+                           />
+                           <button onClick={saveEdit} className="p-1 text-emerald-600 hover:bg-emerald-100 rounded">
+                               <Check className="w-4 h-4" />
+                           </button>
+                           <button onClick={cancelEdit} className="p-1 text-red-500 hover:bg-red-100 rounded">
+                               <X className="w-4 h-4" />
+                           </button>
+                       </div>
+                   ) : (
+                       <div className="flex items-center gap-2 group/title">
+                            <h3 className={`font-bold text-sm truncate ${proj.id === currentProjectId ? 'text-emerald-800' : 'text-gray-800'}`}>
+                                {proj.name}
+                            </h3>
+                            <button 
+                                onClick={(e) => startEditing(e, proj)}
+                                className="opacity-0 group-hover/title:opacity-100 p-1 text-gray-400 hover:text-emerald-600 transition-opacity"
+                                title="Đổi tên"
+                            >
+                                <Edit2 className="w-3 h-3" />
+                            </button>
+                       </div>
+                   )}
                    <p className="text-xs text-gray-500 mt-1 truncate max-w-[90%]">
                      {proj.preview}
                    </p>

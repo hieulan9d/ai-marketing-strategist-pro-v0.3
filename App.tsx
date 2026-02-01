@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppState, StepStatus, KOLData, AdMetrics, DayPlan, RealityAnalysis } from './types';
 import * as GeminiService from './services/geminiService';
@@ -12,6 +11,10 @@ import Step4Ads from './components/Step4Ads';
 import StepSpyResearch from './components/StepSpyResearch';
 import StepRepurposing from './components/StepRepurposing';
 import Step7KOL from './components/Step7KOL';
+import Step8Infographic from './components/Step8Infographic'; // Import Component
+import KnowledgeVault from './components/KnowledgeVault'; // Import Component
+import { KnowledgeFile } from './types';
+import { buildVaultContext } from './services/knowledgeService';
 import ProjectManager from './components/ProjectManager'; // Import Component
 import ApiKeyModal from './components/ApiKeyModal'; // Import Component
 import JSZip from 'jszip';
@@ -61,6 +64,10 @@ const getInitialState = (): AppState => ({
     generatedImages: [],
     isGenerating: false,
   },
+  infographic: null,
+  isGeneratingInfographic: false,
+  knowledgeVault: [],
+
   isGeneratingStrategy: false,
   isGeneratingCalendar: false,
   isGeneratingCreative: false,
@@ -68,6 +75,7 @@ const getInitialState = (): AppState => ({
 });
 
 const AUTOSAVE_KEY = 'AI_MARKETING_AUTOSAVE_DATA';
+const GLOBAL_VAULT_KEY = 'AI_STRATEGIST_GLOBAL_VAULT';
 
 const App: React.FC = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -89,24 +97,81 @@ const App: React.FC = () => {
 
   // --- AUTO-LOAD SYSTEM (ON MOUNT) ---
   useEffect(() => {
-    // Try to load the "Current Session" autosave first
-    const saved = localStorage.getItem(AUTOSAVE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setState(prev => ({
-            ...prev,
-            ...parsed,
-            // Ensure ID is present
-            id: parsed.id || prev.id,
-            // Ensure KOL state exists for old saves
-            kol: parsed.kol || prev.kol
-        }));
-        console.log("📂 Auto-Save: Session restored.");
-      } catch (e) {
-        console.error("Auto-Save: Restore failed", e);
-      }
-    }
+    const initData = async () => {
+        // 0. Load Global Knowledge Vault
+        let globalVault: KnowledgeFile[] = [];
+        try {
+            const globalVaultStr = localStorage.getItem(GLOBAL_VAULT_KEY);
+            if (globalVaultStr) {
+                globalVault = JSON.parse(globalVaultStr);
+            }
+        } catch (e) { console.error("Global Vault Load Error", e); }
+
+        // AUTO-LOAD DEFAULT KNOWLEDGE (Fix for Infographic)
+        if (globalVault.length === 0) {
+            console.log("Attempting to load default knowledge...");
+            const defaultFiles = ['Marketing_Strategy_Core.txt', 'Vietnam_Market_Insight.txt'];
+            const loadedFiles: KnowledgeFile[] = [];
+            
+            for (const fName of defaultFiles) {
+                try {
+                    const response = await fetch(`/knowledge/${fName}`);
+                    if (response.ok) {
+                        const text = await response.text();
+                        loadedFiles.push({
+                            id: generateId(),
+                            name: fName,
+                            type: 'text/plain',
+                            size: text.length,
+                            content: text,
+                            lastModified: Date.now()
+                        });
+                    }
+                } catch (err) {
+                    console.warn(`Could not load ${fName}`, err);
+                }
+            }
+            
+            if (loadedFiles.length > 0) {
+                globalVault = loadedFiles;
+                localStorage.setItem(GLOBAL_VAULT_KEY, JSON.stringify(globalVault));
+                console.log("✅ Default knowledge loaded successfully.");
+            }
+        }
+
+        const globalVaultContext = buildVaultContext(globalVault);
+
+        // Try to load the "Current Session" autosave first
+        const saved = localStorage.getItem(AUTOSAVE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setState(prev => ({
+                ...prev,
+                ...parsed,
+                // Ensure ID is present
+                id: parsed.id || prev.id,
+                // Ensure KOL state exists for old saves
+                kol: parsed.kol || prev.kol,
+                // FORCE GLOBAL VAULT INJECTION
+                knowledgeVault: globalVault,
+                knowledge: { ...parsed.knowledge, vaultContext: globalVaultContext }
+            }));
+            console.log("📂 Auto-Save: Session restored.");
+          } catch (e) {
+            console.error("Auto-Save: Restore failed", e);
+          }
+        } else {
+            // If no autosave, just initialize global vault
+            setState(prev => ({
+                ...prev,
+                knowledgeVault: globalVault,
+                knowledge: { ...prev.knowledge, vaultContext: globalVaultContext }
+            }));
+        }
+    };
+    
+    initData();
   }, []);
 
   // --- AUTO-SAVE SYSTEM (ON CHANGE) ---
@@ -187,7 +252,20 @@ const App: React.FC = () => {
   const handleLoadProject = (id: string) => {
       const loadedState = ProjectService.loadProjectFromStorage(id);
       if (loadedState) {
-          setState(loadedState);
+          // INJECT GLOBAL BRAIN into loaded project
+          let globalVault: KnowledgeFile[] = [];
+          try {
+              const globalVaultStr = localStorage.getItem(GLOBAL_VAULT_KEY);
+              if (globalVaultStr) globalVault = JSON.parse(globalVaultStr);
+          } catch(e){}
+          
+          const globalVaultContext = buildVaultContext(globalVault);
+
+          setState({
+              ...loadedState,
+              knowledgeVault: globalVault,
+              knowledge: { ...loadedState.knowledge, vaultContext: globalVaultContext }
+          });
           setShowProjectManager(false);
           // Optional: alert(`✅ Đã tải dự án: ${loadedState.projectName}`);
       } else {
@@ -348,6 +426,8 @@ const App: React.FC = () => {
     if (step === 5) return !!state.creative;
     if (step === 6) return true;
     if (step === 7) return true; // KOL Unlocked
+    if (step === 8) return true; // Infographic Unlocked (Independent)
+    if (step === 10) return true; // Knowledge Vault Unlocked
     return false;
   };
 
@@ -364,6 +444,8 @@ const App: React.FC = () => {
         case 5: return state.adsCampaigns.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 6: return (state.repurposing.carouselResult || state.repurposing.infographicResult || state.repurposing.videoScriptResult || state.repurposing.emailSequenceResult) ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 7: return state.kol.generatedImages.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
+        case 8: return state.infographic ? StepStatus.COMPLETED : StepStatus.PENDING;
+        case 10: return state.knowledgeVault.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
         default: return StepStatus.PENDING;
     }
   };
@@ -382,21 +464,30 @@ const App: React.FC = () => {
     try {
       const result = await GeminiService.analyzeCompetitor(content, state.knowledge);
       setState(prev => ({ ...prev, spy: { ...prev.spy, competitorResult: result, isAnalyzingCompetitor: false } }));
-    } catch (e) { setState(prev => ({ ...prev, spy: { ...prev.spy, isAnalyzingCompetitor: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi phân tích đối thủ: " + e.message);
+        setState(prev => ({ ...prev, spy: { ...prev.spy, isAnalyzingCompetitor: false } })); 
+    }
   };
   const handleSpyInsights = async (comments: string) => {
     setState(prev => ({ ...prev, spy: { ...prev.spy, isMiningInsights: true } }));
     try {
       const result = await GeminiService.mineInsights(comments, state.knowledge);
       setState(prev => ({ ...prev, spy: { ...prev.spy, insightResult: result, isMiningInsights: false } }));
-    } catch (e) { setState(prev => ({ ...prev, spy: { ...prev.spy, isMiningInsights: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi tìm Insight: " + e.message);
+        setState(prev => ({ ...prev, spy: { ...prev.spy, isMiningInsights: false } })); 
+    }
   };
   const handleSpyTrends = async (keyword: string) => {
     setState(prev => ({ ...prev, spy: { ...prev.spy, isPredictingTrends: true } }));
     try {
       const result = await GeminiService.predictTrends(keyword, state.knowledge);
       setState(prev => ({ ...prev, spy: { ...prev.spy, trendResult: result, isPredictingTrends: false } }));
-    } catch (e) { setState(prev => ({ ...prev, spy: { ...prev.spy, isPredictingTrends: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi dự báo xu hướng: " + e.message);
+        setState(prev => ({ ...prev, spy: { ...prev.spy, isPredictingTrends: false } })); 
+    }
   };
   const handleRepurposeCarousel = async (content: string) => {
     setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingCarousel: true } }));
@@ -440,8 +531,9 @@ const App: React.FC = () => {
       };
 
       setState(prev => ({ ...prev, strategy: finalStrategy, currentStep: 3, isGeneratingStrategy: false }));
-    } catch (error) { 
+    } catch (error: any) { 
         console.error(error);
+        alert(`Lỗi tạo chiến lược: ${error.message || "Vui lòng thử lại"}`);
         setState(prev => ({ ...prev, isGeneratingStrategy: false })); 
     }
   };
@@ -631,9 +723,36 @@ const App: React.FC = () => {
       }
   };
 
+  const handleUpdateInfographic = (data: any) => {
+    setState(prev => ({ ...prev, infographic: data }));
+  };
+
+  // --- KNOWLEDGE VAULT HANDLERS ---
+  const handleUpdateKnowledgeVault = (files: KnowledgeFile[]) => {
+      // 1. Save to Global Storage
+      try {
+          localStorage.setItem(GLOBAL_VAULT_KEY, JSON.stringify(files));
+      } catch (e) {
+          console.error("Failed to save global vault", e);
+          if (e instanceof Error && e.name === 'QuotaExceededError') {
+              alert("Bộ nhớ đầy! Không thể lưu thêm tài liệu vào Bộ Não.");
+          }
+      }
+
+      // 2. Update State
+      const vaultContext = buildVaultContext(files);
+      setState(prev => ({ 
+          ...prev, 
+          knowledgeVault: files,
+          // Sync to shared knowledge so services use it automatically
+          knowledge: { ...prev.knowledge, vaultContext } 
+      }));
+  };
+
   // --- RENDER HELPERS ---
   const NAVIGATION_STEPS = [
-    { id: 0, icon: '🧠', title: 'Kiến Thức Ngành' },
+    { id: 10, icon: '🧠', title: 'Bộ Não Marketing' }, // GLOBAL BRAIN - PRIORITY 1
+    { id: 0, icon: '📚', title: 'Kiến Thức Ngành' }, // Changed Icon to avoid duplicate
     { id: 1, icon: '🕵️', title: 'Điệp Viên & Nghiên Cứu' },
     { id: 2, icon: '🎯', title: 'Chiến Lược Cốt Lõi' },
     { id: 3, icon: '📅', title: 'Lịch 30 Ngày' },
@@ -642,7 +761,8 @@ const App: React.FC = () => {
     { id: 6, icon: '♻️', title: 'Tái Chế Nội Dung' },
     // Reserved Modules
     { id: 7, icon: '👸', title: 'KOL AI Độc Quyền' }, // UNLOCKED
-    { id: 8, icon: '⚡', title: 'Tự Động Hóa N8N', isComingSoon: true }
+    { id: 8, icon: '📊', title: 'Tạo Infographic' },
+    { id: 9, icon: '⚡', title: 'Tự Động Hóa N8N', isComingSoon: true }
   ];
 
   // REMOVED: Blocking Screen Check "if (!hasApiKey) return ..."
@@ -943,6 +1063,30 @@ const App: React.FC = () => {
                    kolData={state.kol}
                    onUpdateKOL={handleUpdateKOL}
                    onGenerateImage={handleGenerateKOLImage}
+                 />
+              </StepContainer>
+
+              <StepContainer 
+                title="Infographic Marketing Creator" stepNumber={8} 
+                icon="📊"
+                status={getStepStatus(8)} isActive={state.currentStep === 8}
+              >
+                <Step8Infographic 
+                   data={state.infographic}
+                   onUpdate={handleUpdateInfographic}
+                   inputContent={state.strategy ? `Sản phẩm: ${state.productInput}\n\nPersona: ${state.strategy.persona}\nUSP: ${state.strategy.usp}\nAngles: ${state.strategy.angles.join(', ')}` : state.productInput}
+                   knowledge={state.knowledge}
+                 />
+              </StepContainer>
+
+              <StepContainer 
+                title="Bộ Não Marketing (Knowledge Vault)" stepNumber={10} 
+                icon="🧠"
+                status={getStepStatus(10)} isActive={state.currentStep === 10}
+              >
+                <KnowledgeVault 
+                   files={state.knowledgeVault}
+                   onUpdate={handleUpdateKnowledgeVault}
                  />
               </StepContainer>
           </div>

@@ -131,3 +131,29 @@ export const deleteProjectFromStorage = (id: string) => {
     console.error("Delete failed", e);
   }
 };
+
+// Rename a project
+export const renameProjectInStorage = (id: string, newName: string) => {
+  try {
+    // 1. Update Project File
+    const project = loadProjectFromStorage(id);
+    if (project) {
+        project.projectName = newName;
+        project.lastSaved = Date.now();
+        localStorage.setItem(STORAGE_KEY_PREFIX + id, JSON.stringify(project));
+    }
+
+    // 2. Update Index
+    const currentIndex = getProjectList();
+    const indexItem = currentIndex.find(p => p.id === id);
+    if (indexItem) {
+        indexItem.name = newName;
+        indexItem.lastSaved = Date.now();
+        localStorage.setItem(INDEX_KEY, JSON.stringify(currentIndex));
+    }
+    return true;
+  } catch (e) {
+    console.error("Rename failed", e);
+    return false;
+  }
+};
