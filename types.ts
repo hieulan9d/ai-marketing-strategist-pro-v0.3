@@ -4,6 +4,7 @@ export interface StrategyData {
   usp: string;
   angles: string[];
   realityCheck?: RealityAnalysis; // New field for Reality Check data
+  seasonalAdjustment?: string; // New: Auto-detected seasonal theme
 }
 
 export interface TikTokScriptSegment {
@@ -24,6 +25,7 @@ export interface DayDetail {
   seedingScript: string;
   tiktokScript?: TikTokScriptData; // New module data
   generatedImage?: string; // Base64 data string
+  generatedImages?: string[]; // New: List of variations
   generatedVideo?: string; // Video URL/Blob URL
   isGeneratingMedia?: boolean; // UI state for spinner
   isGeneratingScript?: boolean; // UI state for script gen
@@ -196,22 +198,51 @@ export interface KOLData {
   isGenerating: boolean;
 }
 
-// --- INFOGRAPHIC MODULE TYPES (NEW) ---
-export interface InfographicStep {
-  icon: string; // Lucide icon name
-  label: string;
-  desc: string; // Short description < 20 words
+// --- INFOGRAPHIC ARCHITECT TYPES (NEW) ---
+export interface InfographicTemplate {
+  id: string;
+  name: string;
+  masterPrompt: string; // Legacy support
+  environmentPrompt?: string; // New V3
+  lightingPrompt?: string; // New V3
+  compositionKeywords?: string; // New V3
+  negativePromptAdditions?: string; // New V3
+  negativePrompt?: string; // Auto-extracted negative prompt
+  previewImage?: string; // Base64
+  styleTags?: string[];
+}
+
+export interface InfographicPreset {
+  id: string;
+  name: string;
+  templatePrompt: string;
+  systemInstruction?: string;
+  imageStyle?: string;
 }
 
 export interface InfographicData {
-  hook: string;
-  steps: InfographicStep[];
-  key_stat: string;
-  brand_colors: {
-    primary: string;
-    secondary: string;
-  };
+  templates: InfographicTemplate[];
+  currentTemplateId: string | null;
+  
+  presets: InfographicPreset[]; // New V4
+  currentPresetId: string | null; // New V4
+
+  // V3 Fields
+  userProductImage: string | null; // Uploaded product image
+  productPhysicalDesc: string; // Auto-analyzed description
+  productNameInput: string; // Basic name (e.g. "My Coffee")
+  
+  // V3.5 New Fields (Text-to-Infographic)
+  infographicIdeaInput: string;
+  isPromptEnhanceEnabled: boolean;
+
+  generatedPrompt: string;
+  generatedImage: string | null; // Main/Selected Image
+  generatedImages: string[]; // List of all generated variations (New V2)
+  isAnalyzing: boolean;
+  isGenerating: boolean;
 }
+
 
 // --- KNOWLEDGE VAULT TYPES (NEW) ---
 export interface KnowledgeFile {
@@ -243,9 +274,10 @@ export interface AppState {
   spy: SpyData;
   repurposing: RepurposingData;
   kol: KOLData; // New KOL State
-  infographic: InfographicData | null; // New Infographic State
-  isGeneratingInfographic: boolean;
+  infographic: InfographicData; // New Infographic State
   knowledgeVault: KnowledgeFile[]; // New Knowledge Vault State
+
+  mediaConfig: { imageCount: number; videoCount: number }; // New Configuration
 
   productInput: string;
   currentStep: number;

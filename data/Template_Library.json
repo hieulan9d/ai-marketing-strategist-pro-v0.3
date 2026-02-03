@@ -1,0 +1,13 @@
+[
+  {
+    "id": "template_tra_quyt_cached",
+    "name": "Trà Quýt (Cached)",
+    "masterPrompt": "Cinematic shot of Trà Quýt product",
+    "negativePrompt": "distortion, bad quality",
+    "environmentPrompt": "placed on a wooden table with fresh tangerines and tea leaves scattered around, soft morning sunlight",
+    "lightingPrompt": "Natural window light, warm tone, golden hour",
+    "compositionKeywords": "Center composition, depth of field, 85mm lens",
+    "negativePromptAdditions": "plastic bottles, artificial looking fruit",
+    "previewImage": ""
+  }
+]

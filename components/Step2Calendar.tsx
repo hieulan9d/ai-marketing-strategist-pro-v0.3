@@ -13,6 +13,8 @@ interface Step2Props {
   calendar: DayPlan[];
   isLoading: boolean;
   projectName?: string;
+  mediaConfig?: { imageCount: number; videoCount: number };
+  onUpdateMediaConfig?: (config: Partial<{ imageCount: number; videoCount: number }>) => void;
 }
 
 const Step2Calendar: React.FC<Step2Props> = ({ 
@@ -23,7 +25,9 @@ const Step2Calendar: React.FC<Step2Props> = ({
     onUpdateCalendar,
     calendar, 
     isLoading, 
-    projectName = 'du-an' 
+    projectName = 'du-an',
+    mediaConfig,
+    onUpdateMediaConfig
 }) => {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'tiktok'>('content');
@@ -183,7 +187,36 @@ const Step2Calendar: React.FC<Step2Props> = ({
   return (
     <div className="relative animate-fadeIn">
       {/* Dynamic Insert Button */}
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-end gap-4">
+          {/* MEDIA CONFIG PANEL */}
+          {mediaConfig && onUpdateMediaConfig && (
+              <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                          🖼️ Số lượng ảnh ({mediaConfig.imageCount})
+                      </label>
+                      <input 
+                          type="range" min="1" max="5" step="1"
+                          value={mediaConfig.imageCount}
+                          onChange={(e) => onUpdateMediaConfig({ imageCount: parseInt(e.target.value) })}
+                          className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      />
+                  </div>
+                  <div className="w-px bg-gray-200"></div>
+                  <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                          🎥 Số lượng video ({mediaConfig.videoCount})
+                      </label>
+                      <input 
+                          type="range" min="1" max="3" step="1"
+                          value={mediaConfig.videoCount}
+                          onChange={(e) => onUpdateMediaConfig({ videoCount: parseInt(e.target.value) })}
+                          className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                      />
+                  </div>
+              </div>
+          )}
+
           <button 
              onClick={() => setIsInsertModalOpen(true)}
              className="px-5 py-2.5 bg-[#FFD700] hover:bg-[#F5C500] text-black font-bold rounded-xl shadow-md flex items-center gap-2 transition-transform hover:scale-105"
@@ -310,20 +343,37 @@ const Step2Calendar: React.FC<Step2Props> = ({
                                         onClick={() => selectedDayIndex !== null && onGenerateMedia(selectedDayIndex, 'image', selectedDay.details?.visualPrompt)}
                                         className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
                                         >
-                                        ✨ Tạo Hình Ảnh (Imagen 3)
+                                        ✨ Tạo Hình Ảnh (Imagen 3) {mediaConfig && mediaConfig.imageCount > 1 && `(x${mediaConfig.imageCount})`}
                                         </button>
                                     ) : (
                                         <div className="space-y-4">
-                                        <MediaViewer 
-                                            src={selectedDay.details.generatedImage} 
-                                            type="image" 
-                                            onDownload={() => {
-                                                const a = document.createElement('a');
-                                                a.href = selectedDay.details?.generatedImage || '';
-                                                a.download = `${projectName}_Ngay${selectedDay.day}_Anh.jpg`;
-                                                a.click();
-                                            }}
-                                        />
+                                        {/* Gallery if multiple images */}
+                                        {selectedDay.details.generatedImages && selectedDay.details.generatedImages.length > 1 ? (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {selectedDay.details.generatedImages.map((img, idx) => (
+                                                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-900 shadow-sm aspect-square">
+                                                        <img src={img} className="w-full h-full object-cover" />
+                                                        <button 
+                                                            onClick={() => window.open(img, '_blank')}
+                                                            className="absolute bottom-2 right-2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <span className="text-[10px]">👁️</span>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <MediaViewer 
+                                                src={selectedDay.details.generatedImage} 
+                                                type="image" 
+                                                onDownload={() => {
+                                                    const a = document.createElement('a');
+                                                    a.href = selectedDay.details?.generatedImage || '';
+                                                    a.download = `${projectName}_Ngay${selectedDay.day}_Anh.jpg`;
+                                                    a.click();
+                                                }}
+                                            />
+                                        )}
                                         
                                         {/* Video Gen */}
                                         {!selectedDay.details.generatedVideo ? (

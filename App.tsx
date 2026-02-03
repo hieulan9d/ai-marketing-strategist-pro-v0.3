@@ -11,7 +11,7 @@ import Step4Ads from './components/Step4Ads';
 import StepSpyResearch from './components/StepSpyResearch';
 import StepRepurposing from './components/StepRepurposing';
 import Step7KOL from './components/Step7KOL';
-import Step8Infographic from './components/Step8Infographic'; // Import Component
+import InfographicArchitect from './components/InfographicArchitect'; // Import Component
 import KnowledgeVault from './components/KnowledgeVault'; // Import Component
 import { KnowledgeFile } from './types';
 import { buildVaultContext } from './services/knowledgeService';
@@ -64,9 +64,25 @@ const getInitialState = (): AppState => ({
     generatedImages: [],
     isGenerating: false,
   },
-  infographic: null,
-  isGeneratingInfographic: false,
+  infographic: {
+    templates: [],
+    currentTemplateId: null,
+    presets: [],
+    currentPresetId: null,
+    productNameInput: '',
+    userProductImage: null,
+    productPhysicalDesc: '',
+    infographicIdeaInput: '',
+    isPromptEnhanceEnabled: true,
+    generatedPrompt: '',
+    generatedImage: null,
+    generatedImages: [],
+    isAnalyzing: false,
+    isGenerating: false
+  },
   knowledgeVault: [],
+  
+  mediaConfig: { imageCount: 1, videoCount: 1 },
 
   isGeneratingStrategy: false,
   isGeneratingCalendar: false,
@@ -153,6 +169,8 @@ const App: React.FC = () => {
                 id: parsed.id || prev.id,
                 // Ensure KOL state exists for old saves
                 kol: parsed.kol || prev.kol,
+                // Ensure Infographic state exists and has new fields (deep merge)
+                infographic: parsed.infographic ? { ...prev.infographic, ...parsed.infographic, generatedImages: parsed.infographic.generatedImages || [] } : prev.infographic,
                 // FORCE GLOBAL VAULT INJECTION
                 knowledgeVault: globalVault,
                 knowledge: { ...parsed.knowledge, vaultContext: globalVaultContext }
@@ -261,8 +279,12 @@ const App: React.FC = () => {
           
           const globalVaultContext = buildVaultContext(globalVault);
 
+          // Merge with initial state to ensure new fields (like infographic) are present
           setState({
-              ...loadedState,
+              ...getInitialState(), // Default values for new fields
+              ...loadedState,       // Overwrite with saved data
+              // Ensure critical new fields are not lost if missing in loadedState (Deep Merge)
+              infographic: loadedState.infographic ? { ...getInitialState().infographic, ...loadedState.infographic, generatedImages: loadedState.infographic.generatedImages || [] } : getInitialState().infographic,
               knowledgeVault: globalVault,
               knowledge: { ...loadedState.knowledge, vaultContext: globalVaultContext }
           });
@@ -426,7 +448,7 @@ const App: React.FC = () => {
     if (step === 5) return !!state.creative;
     if (step === 6) return true;
     if (step === 7) return true; // KOL Unlocked
-    if (step === 8) return true; // Infographic Unlocked (Independent)
+    if (step === 8) return true; // Infographic Unlocked
     if (step === 10) return true; // Knowledge Vault Unlocked
     return false;
   };
@@ -444,7 +466,7 @@ const App: React.FC = () => {
         case 5: return state.adsCampaigns.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 6: return (state.repurposing.carouselResult || state.repurposing.infographicResult || state.repurposing.videoScriptResult || state.repurposing.emailSequenceResult) ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 7: return state.kol.generatedImages.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
-        case 8: return state.infographic ? StepStatus.COMPLETED : StepStatus.PENDING;
+        case 8: return state.infographic?.generatedImage ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 10: return state.knowledgeVault.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
         default: return StepStatus.PENDING;
     }
@@ -494,28 +516,40 @@ const App: React.FC = () => {
     try {
       const result = await GeminiService.repurposeToCarousel(content, state.knowledge);
       setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, carouselResult: result, isGeneratingCarousel: false } }));
-    } catch (e) { setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingCarousel: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi tạo Slide: " + (e.message || "Vui lòng thử lại"));
+        setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingCarousel: false } })); 
+    }
   };
   const handleRepurposeInfographic = async (content: string) => {
     setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingInfographic: true } }));
     try {
       const result = await GeminiService.repurposeToInfographic(content, state.knowledge);
       setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, infographicResult: result, isGeneratingInfographic: false } }));
-    } catch (e) { setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingInfographic: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi tạo Infographic: " + (e.message || "Vui lòng thử lại"));
+        setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingInfographic: false } })); 
+    }
   };
   const handleRepurposeVideoScript = async (content: string) => {
     setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingVideoScript: true } }));
     try {
       const result = await GeminiService.repurposeToVideoScript(content, state.knowledge);
       setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, videoScriptResult: result, isGeneratingVideoScript: false } }));
-    } catch (e) { setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingVideoScript: false, videoScriptResult: null } })); }
+    } catch (e: any) { 
+        alert("Lỗi tạo Video Script: " + (e.message || "Vui lòng thử lại"));
+        setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingVideoScript: false, videoScriptResult: null } })); 
+    }
   };
   const handleRepurposeEmailSequence = async (content: string) => {
     setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingEmail: true } }));
     try {
       const result = await GeminiService.repurposeToEmailSequence(content, state.knowledge);
       setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, emailSequenceResult: result, isGeneratingEmail: false } }));
-    } catch (e) { setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingEmail: false } })); }
+    } catch (e: any) { 
+        alert("Lỗi tạo Email: " + (e.message || "Vui lòng thử lại"));
+        setState(prev => ({ ...prev, repurposing: { ...prev.repurposing, isGeneratingEmail: false } })); 
+    }
   };
   
   // FIX: Updated to accept realityContext parameter
@@ -610,12 +644,22 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, calendar: calendarWithLoading }));
     try {
       if (type === 'image' && prompt) {
-        const imageBase64 = await GeminiService.generateImage(prompt);
+        // Use Image Count Config
+        const images = await GeminiService.generateImage(prompt, undefined, state.mediaConfig.imageCount);
         const calendarSuccess = [...state.calendar];
-        calendarSuccess[dayIndex] = { ...dayToUpdate, details: { ...dayToUpdate.details, generatedImage: imageBase64, isGeneratingMedia: false } };
+        calendarSuccess[dayIndex] = { 
+            ...dayToUpdate, 
+            details: { 
+                ...dayToUpdate.details, 
+                generatedImage: images[0], 
+                generatedImages: images, // Store all variations
+                isGeneratingMedia: false 
+            } 
+        };
         setState(prev => ({ ...prev, calendar: calendarSuccess }));
       } else if (type === 'video' && dayToUpdate.details.generatedImage && prompt) {
-        const videoUrl = await GeminiService.generateVideo(dayToUpdate.details.generatedImage, prompt);
+        // Use Video Count Config
+        const videoUrl = await GeminiService.generateVideo(dayToUpdate.details.generatedImage, prompt, state.mediaConfig.videoCount);
         const calendarSuccess = [...state.calendar];
         calendarSuccess[dayIndex] = { ...dayToUpdate, details: { ...dayToUpdate.details, generatedVideo: videoUrl, isGeneratingMedia: false } };
         setState(prev => ({ ...prev, calendar: calendarSuccess }));
@@ -630,7 +674,7 @@ const App: React.FC = () => {
     if (!state.strategy) return;
     setState(prev => ({ ...prev, isGeneratingCreative: true }));
     try {
-      const creative = await GeminiService.generateCreative(state.strategy, state.knowledge);
+      const creative = await GeminiService.generateCreative(state.strategy, state.knowledge, state.mediaConfig);
       setState(prev => ({ ...prev, creative, currentStep: 5, isGeneratingCreative: false }));
     } catch (error) { setState(prev => ({ ...prev, isGeneratingCreative: false })); }
   };
@@ -657,7 +701,7 @@ const App: React.FC = () => {
         const campaign = state.adsCampaigns.find(c => c.id === campaignId);
         if(!campaign) return;
         if (type === 'image' && prompt) {
-            const imageBase64 = await GeminiService.generateImage(prompt);
+            const [imageBase64] = await GeminiService.generateImage(prompt);
             updateData.generatedImage = imageBase64;
         } else if (type === 'video' && campaign.data.adContent.generatedImage && prompt) {
             const videoUrl = await GeminiService.generateVideo(campaign.data.adContent.generatedImage, prompt);
@@ -697,6 +741,11 @@ const App: React.FC = () => {
       }
   };
 
+  // --- MEDIA CONFIG HANDLER ---
+  const handleUpdateMediaConfig = (newConfig: Partial<{ imageCount: number; videoCount: number }>) => {
+      setState(prev => ({ ...prev, mediaConfig: { ...prev.mediaConfig, ...newConfig } }));
+  };
+
   // --- KOL HANDLERS ---
   const handleUpdateKOL = (newData: Partial<KOLData>) => {
       setState(prev => ({ ...prev, kol: { ...prev.kol, ...newData } }));
@@ -721,10 +770,6 @@ const App: React.FC = () => {
           setState(prev => ({ ...prev, kol: { ...prev.kol, isGenerating: false } }));
           alert("Lỗi khi tạo ảnh KOL. Vui lòng thử lại.");
       }
-  };
-
-  const handleUpdateInfographic = (data: any) => {
-    setState(prev => ({ ...prev, infographic: data }));
   };
 
   // --- KNOWLEDGE VAULT HANDLERS ---
@@ -761,7 +806,7 @@ const App: React.FC = () => {
     { id: 6, icon: '♻️', title: 'Tái Chế Nội Dung' },
     // Reserved Modules
     { id: 7, icon: '👸', title: 'KOL AI Độc Quyền' }, // UNLOCKED
-    { id: 8, icon: '📊', title: 'Tạo Infographic' },
+    { id: 8, icon: '📐', title: 'Infographic Architect' }, // NEW MODULE
     { id: 9, icon: '⚡', title: 'Tự Động Hóa N8N', isComingSoon: true }
   ];
 
@@ -956,6 +1001,22 @@ const App: React.FC = () => {
               </div>
           </div>
 
+          {/* SEASONAL ALERT BANNER */}
+          {state.strategy?.seasonalAdjustment && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4">
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-2xl">🎉</div>
+                      <div>
+                          <h3 className="font-bold text-sm uppercase tracking-wide">Hệ thống nhận diện sự kiện</h3>
+                          <p className="text-sm font-medium">{state.strategy.seasonalAdjustment}</p>
+                      </div>
+                  </div>
+                  <button onClick={() => alert("Đã tự động áp dụng Theme Lễ Hội vào toàn bộ kế hoạch!")} className="px-4 py-2 bg-white text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors">
+                      Xem chi tiết
+                  </button>
+              </div>
+          )}
+
           <div 
              key={state.id}
              className="max-w-5xl mx-auto transition-transform origin-top-center"
@@ -1067,16 +1128,16 @@ const App: React.FC = () => {
               </StepContainer>
 
               <StepContainer 
-                title="Infographic Marketing Creator" stepNumber={8} 
-                icon="📊"
+                title="Infographic Architect" stepNumber={8} 
+                icon="📐"
                 status={getStepStatus(8)} isActive={state.currentStep === 8}
               >
-                <Step8Infographic 
-                   data={state.infographic}
-                   onUpdate={handleUpdateInfographic}
-                   inputContent={state.strategy ? `Sản phẩm: ${state.productInput}\n\nPersona: ${state.strategy.persona}\nUSP: ${state.strategy.usp}\nAngles: ${state.strategy.angles.join(', ')}` : state.productInput}
-                   knowledge={state.knowledge}
-                 />
+                {state.infographic && (
+                  <InfographicArchitect 
+                    data={state.infographic}
+                    onUpdate={(newData) => setState(prev => ({ ...prev, infographic: newData }))}
+                  />
+                )}
               </StepContainer>
 
               <StepContainer 

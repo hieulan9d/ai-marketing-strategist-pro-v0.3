@@ -6,15 +6,51 @@ interface Step3Props {
   onGenerate: () => Promise<void>;
   data: CreativeData | null;
   isLoading: boolean;
+  mediaConfig?: { imageCount: number; videoCount: number };
+  onUpdateMediaConfig?: (config: Partial<{ imageCount: number; videoCount: number }>) => void;
 }
 
-const Step3Creative: React.FC<Step3Props> = ({ onGenerate, data, isLoading }) => {
+const Step3Creative: React.FC<Step3Props> = ({ onGenerate, data, isLoading, mediaConfig, onUpdateMediaConfig }) => {
+  // CONFIG PANEL
+  const ConfigPanel = () => (
+      mediaConfig && onUpdateMediaConfig ? (
+          <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm mx-auto w-fit mb-6 animate-fadeIn">
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                      🖼️ Số lượng KOL Concepts ({mediaConfig.imageCount})
+                  </label>
+                  <input 
+                      type="range" min="1" max="5" step="1"
+                      value={mediaConfig.imageCount}
+                      onChange={(e) => onUpdateMediaConfig({ imageCount: parseInt(e.target.value) })}
+                      className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  />
+              </div>
+              <div className="w-px bg-gray-200"></div>
+              <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                      🎥 Số lượng Viral Hooks ({mediaConfig.videoCount})
+                  </label>
+                  <input 
+                      type="range" min="1" max="3" step="1"
+                      value={mediaConfig.videoCount}
+                      onChange={(e) => onUpdateMediaConfig({ videoCount: parseInt(e.target.value) })}
+                      className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                  />
+              </div>
+          </div>
+      ) : null
+  );
+
   if (!data) {
     return (
       <div className="text-center py-12">
-         <p className="text-gray-600 mb-8 text-lg">
+         <p className="text-gray-600 mb-4 text-lg">
           Kích hoạt chiến dịch với các Hooks viral và ý tưởng KOL đột phá.
         </p>
+        
+        <ConfigPanel />
+
         <button
           onClick={onGenerate}
           disabled={isLoading}
@@ -23,7 +59,7 @@ const Step3Creative: React.FC<Step3Props> = ({ onGenerate, data, isLoading }) =>
           {isLoading ? (
             <div className="flex items-center gap-2">
               <LoadingSpinner size="sm" color="text-white" />
-              <span>Đang tạo ý tưởng Viral...</span>
+              <span>Đang tạo {mediaConfig?.videoCount || 3} Viral Hooks & {mediaConfig?.imageCount || 3} Concepts...</span>
             </div>
           ) : (
             'Tạo Tài Nguyên Sáng Tạo'
@@ -35,6 +71,11 @@ const Step3Creative: React.FC<Step3Props> = ({ onGenerate, data, isLoading }) =>
 
   return (
     <div className="space-y-8 animate-fadeIn">
+      <div className="flex justify-end">
+          <button onClick={onGenerate} disabled={isLoading} className="text-sm text-gray-500 hover:text-gray-900 underline">
+              {isLoading ? "Đang làm mới..." : "Tạo lại bộ ý tưởng khác"}
+          </button>
+      </div>
       <div className="grid md:grid-cols-2 gap-6">
         {/* Viral Hooks */}
         <div className="glass-panel p-0 rounded-2xl overflow-hidden shadow-sm border-0">

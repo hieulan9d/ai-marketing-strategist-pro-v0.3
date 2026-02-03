@@ -1,0 +1,9 @@
+[
+  {
+    "id": "sample_1",
+    "name": "Luxury Perfume Concept",
+    "system_instruction": "Giữ nguyên vai trò và phong cách của lần tạo trước",
+    "template_prompt": "A cinematic shot of {product_input} placed on a black marble podium, golden rim lighting, 8k resolution, professional photography.",
+    "image_style": "Cinematic"
+  }
+]
