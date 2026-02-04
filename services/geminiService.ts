@@ -150,15 +150,50 @@ const MARKETING_BRAIN_INSTRUCTIONS = `
   ===========================================
 `;
 
-// --- CONTEXT BUILDER ---
-const buildContext = (knowledge?: KnowledgeData) => {
+// --- GLOBAL KNOWLEDGE LOADER ---
+export const GLOBAL_MARKETING_FILES = [
+  { name: 'Marketing_Strategy_Core.txt', path: '/global/marketing_brain/Marketing_Strategy_Core.txt' },
+  { name: 'Vietnam_Market_Insight.txt', path: '/global/marketing_brain/Vietnam_Market_Insight.txt' },
+  { name: 'Viral_Content_Hooks.txt', path: '/global/marketing_brain/Viral_Content_Hooks.txt' },
+  { name: 'Visual_Prompting_Guide.txt', path: '/global/marketing_brain/Visual_Prompting_Guide.txt' }
+];
+
+let globalContextCache: string | null = null;
+const loadGlobalContext = async (): Promise<string> => {
+  if (globalContextCache) return globalContextCache;
+  
+  try {
+    const filePromises = GLOBAL_MARKETING_FILES.map(async (file) => {
+      try {
+        const response = await fetch(file.path);
+        if (!response.ok) return ""; // Ignore missing files silently
+        const text = await response.text();
+        return `=== 🌐 GLOBAL MARKETING BRAIN: ${file.name} ===\n${text}\n=====================================\n`;
+      } catch (e) {
+        return "";
+      }
+    });
+
+    const contents = await Promise.all(filePromises);
+    globalContextCache = contents.join("\n");
+    return globalContextCache;
+  } catch (e) {
+    console.error("Error loading Global Marketing Brain", e);
+    return "";
+  }
+};
+
+// --- CONTEXT BUILDER (UPDATED) ---
+const buildContext = async (knowledge?: KnowledgeData) => {
   if (!knowledge || !knowledge.isConfirmed) return "";
   
-  const rules = knowledge.domainRules ? `DOMAIN RULES (EXPLICIT): "${knowledge.domainRules}"` : "";
-  const uploadedDocs = knowledge.uploadedKnowledge ? `UPLOADED KNOWLEDGE BASE (CONTEXT): \n"${knowledge.uploadedKnowledge.substring(0, 30000)}..."\n(Use this uploaded knowledge to adapt tone, slang, and deep industry insights)` : "";
-  const vaultDocs = knowledge.vaultContext ? `${knowledge.vaultContext}` : "";
-  const visualStyle = knowledge.visualStyle ? `VISUAL AESTHETIC GUIDE: "${knowledge.visualStyle}"` : "";
-  const videoStyle = knowledge.videoStyle ? `VIDEO EDITING STYLE: "${knowledge.videoStyle}"` : "";
+  const globalData = await loadGlobalContext();
+
+  const rules = knowledge.domainRules ? `📂 PROJECT RULES (EXPLICIT): "${knowledge.domainRules}"` : "";
+  const uploadedDocs = knowledge.uploadedKnowledge ? `📂 PROJECT KNOWLEDGE BASE (CONTEXT): \n"${knowledge.uploadedKnowledge.substring(0, 30000)}..."\n(Use this uploaded knowledge to adapt tone, slang, and deep industry insights)` : "";
+  const vaultDocs = knowledge.vaultContext ? `📂 PROJECT VAULT: ${knowledge.vaultContext}` : "";
+  const visualStyle = knowledge.visualStyle ? `📂 PROJECT VISUAL AESTHETIC: "${knowledge.visualStyle}"` : "";
+  const videoStyle = knowledge.videoStyle ? `📂 PROJECT VIDEO STYLE: "${knowledge.videoStyle}"` : "";
   
   return `
     CRITICAL INSTRUCTION - INDUSTRY BRAIN ACTIVATED:
@@ -168,6 +203,10 @@ const buildContext = (knowledge?: KnowledgeData) => {
 
     ${MARKETING_BRAIN_INSTRUCTIONS}
     
+    === PART 1: GLOBAL MARKETING BRAIN (FIXED) ===
+    ${globalData}
+    
+    === PART 2: PROJECT SPECIFIC KNOWLEDGE (VARIABLE) ===
     ${uploadedDocs}
     ${vaultDocs}
     ${rules}
@@ -214,7 +253,7 @@ export const analyzeRealityAssets = async (
   knowledge?: KnowledgeData
 ): Promise<RealityAnalysis> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   
   const parts: any[] = [];
   assetsBase64.forEach((asset, index) => {
@@ -263,7 +302,7 @@ export const analyzeRealityAssets = async (
 
 export const analyzeCompetitor = async (content: string, knowledge?: KnowledgeData): Promise<CompetitorAudit> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Chuyên gia Phân tích Đối thủ.
@@ -290,7 +329,7 @@ export const analyzeCompetitor = async (content: string, knowledge?: KnowledgeDa
 
 export const mineInsights = async (comments: string, knowledge?: KnowledgeData): Promise<InsightMining> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Nhà Tâm lý học Hành vi.
@@ -317,7 +356,7 @@ export const mineInsights = async (comments: string, knowledge?: KnowledgeData):
 
 export const predictTrends = async (keyword: string, knowledge?: KnowledgeData): Promise<TrendPrediction> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Chuyên gia Dự báo Xu hướng.
@@ -345,7 +384,7 @@ export const predictTrends = async (keyword: string, knowledge?: KnowledgeData):
 
 export const repurposeToCarousel = async (content: string, knowledge?: KnowledgeData): Promise<RepurposeCarousel> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Content Creator.
@@ -377,7 +416,7 @@ export const repurposeToCarousel = async (content: string, knowledge?: Knowledge
 
 export const repurposeToInfographic = async (content: string, knowledge?: KnowledgeData): Promise<RepurposeInfographic> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Visual Data Designer.
@@ -405,7 +444,7 @@ export const repurposeToInfographic = async (content: string, knowledge?: Knowle
 
 export const repurposeToVideoScript = async (content: string, knowledge?: KnowledgeData): Promise<RepurposeVideoScript> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: TikTok Scriptwriter.
@@ -433,7 +472,7 @@ export const repurposeToVideoScript = async (content: string, knowledge?: Knowle
 
 export const repurposeToEmailSequence = async (content: string, knowledge?: KnowledgeData): Promise<RepurposeEmailSequence> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Email Marketer.
@@ -613,7 +652,7 @@ export const generateKOLImage = async (dnaBase64: string, userPrompt: string, ko
 
 export const generateStrategy = async (productInfo: string, knowledge?: KnowledgeData, realityContext?: RealityAnalysis): Promise<StrategyData> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   
   let realityInstruction = "";
   if (realityContext) {
@@ -654,7 +693,7 @@ export const generateStrategy = async (productInfo: string, knowledge?: Knowledg
 
 export const generateCalendarOverview = async (strategy: StrategyData, knowledge?: KnowledgeData): Promise<DayPlan[]> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Content Planner.
@@ -685,7 +724,7 @@ export const generateCalendarOverview = async (strategy: StrategyData, knowledge
 
 export const generateDayDetail = async (dayPlan: DayPlan, strategy: StrategyData, knowledge?: KnowledgeData): Promise<DayDetail> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Copywriter.
@@ -716,7 +755,7 @@ export const adaptCalendar = async (
     knowledge?: KnowledgeData
 ): Promise<DayPlan[]> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const calendarContext = currentCalendar.map(d => `Day ${d.day}: ${d.topic} (${d.angle})`).join('\n');
 
   const parts: any[] = [];
@@ -770,7 +809,7 @@ export const adaptCalendar = async (
 
 export const generateTikTokScript = async (topic: string, angle: string, knowledge?: KnowledgeData): Promise<TikTokScriptData> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: TikTok Scriptwriter.
@@ -797,7 +836,7 @@ export const generateTikTokScript = async (topic: string, angle: string, knowled
 
 export const generateCreative = async (strategy: StrategyData, knowledge?: KnowledgeData, mediaConfig?: { imageCount: number; videoCount: number }): Promise<CreativeData> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   
   // Use config or defaults
   const videoLimit = mediaConfig?.videoCount || 3;
@@ -828,7 +867,7 @@ export const generateCreative = async (strategy: StrategyData, knowledge?: Knowl
 
 export const generateAds = async (strategy: StrategyData, customRequirements?: string, knowledge?: KnowledgeData): Promise<AdsData> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   const prompt = `
     ${context}
     Role: Ads Manager.
@@ -858,7 +897,7 @@ export const generateAds = async (strategy: StrategyData, customRequirements?: s
 
 export const analyzeAdPerformance = async (metrics: AdMetrics, campaignContext: AdsData, knowledge?: KnowledgeData): Promise<AdAnalysis> => {
   const ai = getAiClient();
-  const context = buildContext(knowledge);
+  const context = await buildContext(knowledge);
   
   const prompt = `
     ${context}

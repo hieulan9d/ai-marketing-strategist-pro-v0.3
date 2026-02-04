@@ -784,14 +784,31 @@ const App: React.FC = () => {
           }
       }
 
-      // 2. Update State
-      const vaultContext = buildVaultContext(files);
+      // 2. Update State (Context is NOT rebuilt here automatically to allow manual training trigger)
+      // We only update the list. Context is updated on "Train".
+      setState(prev => ({ ...prev, knowledgeVault: files }));
+  };
+
+  const handleTrainVault = (files: KnowledgeFile[]) => {
+      // 1. Mark all files as 'learned'
+      const learnedFiles = files.map(f => ({ ...f, status: 'learned' as const }));
+      
+      // 2. Update Context
+      const vaultContext = buildVaultContext(learnedFiles);
+      
+      // 3. Update State
       setState(prev => ({ 
           ...prev, 
-          knowledgeVault: files,
-          // Sync to shared knowledge so services use it automatically
+          knowledgeVault: learnedFiles,
           knowledge: { ...prev.knowledge, vaultContext } 
       }));
+      
+      // 4. Save to Storage
+      try {
+          localStorage.setItem(GLOBAL_VAULT_KEY, JSON.stringify(learnedFiles));
+      } catch (e) { console.error(e); }
+      
+      alert(`✅ Đã nạp ${learnedFiles.length} tài liệu vào Bộ Não AI!`);
   };
 
   // --- RENDER HELPERS ---
@@ -1148,6 +1165,7 @@ const App: React.FC = () => {
                 <KnowledgeVault 
                    files={state.knowledgeVault}
                    onUpdate={handleUpdateKnowledgeVault}
+                   onTrain={handleTrainVault}
                  />
               </StepContainer>
           </div>

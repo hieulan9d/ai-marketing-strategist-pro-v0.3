@@ -254,6 +254,7 @@ export interface KnowledgeFile {
   preview?: string; // For images
   description?: string; // Analysis of the image content
   lastModified: number;
+  status?: 'learned' | 'pending' | 'error'; // Training status
 }
 
 // ------------------------

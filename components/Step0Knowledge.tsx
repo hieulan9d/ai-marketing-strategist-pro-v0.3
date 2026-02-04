@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KnowledgeData } from '../types';
 import * as GeminiService from '../services/geminiService';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -8,6 +7,17 @@ interface Step0Props {
   knowledge: KnowledgeData;
   onSave: (data: KnowledgeData) => void;
 }
+
+interface GlobalBrainState {
+  files: {
+    [filename: string]: {
+      status: 'learned' | 'error' | 'pending';
+      lastUpdated: number;
+    }
+  }
+}
+
+const GLOBAL_STORAGE_KEY = 'ai_strategist_global_brain';
 
 const INDUSTRIES = [
   "Spa & Làm đẹp",
@@ -31,6 +41,58 @@ const Step0Knowledge: React.FC<Step0Props> = ({ knowledge, onSave }) => {
   // Doc loading state
   const [loadedDocsCount, setLoadedDocsCount] = useState<number>(0);
   const [isReadingDoc, setIsReadingDoc] = useState(false);
+
+  // GLOBAL BRAIN STATE
+  const [brainStatus, setBrainStatus] = useState<GlobalBrainState>({ files: {} });
+  const [isUpdatingBrain, setIsUpdatingBrain] = useState(false);
+  const [toast, setToast] = useState<{show: boolean, message: string} | null>(null);
+
+  // Load Global State on Mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(GLOBAL_STORAGE_KEY);
+      if (saved) {
+        setBrainStatus(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load global brain state", e);
+    }
+  }, []);
+
+  const handleUpdateGlobalBrain = async () => {
+    setIsUpdatingBrain(true);
+    const newStatus: GlobalBrainState = { files: { ...brainStatus.files } };
+    let successCount = 0;
+
+    // Simulate "Learning" process with validation
+    for (const file of GeminiService.GLOBAL_MARKETING_FILES) {
+      try {
+        const response = await fetch(file.path);
+        if (response.ok) {
+           newStatus.files[file.name] = { status: 'learned', lastUpdated: Date.now() };
+           successCount++;
+        } else {
+           newStatus.files[file.name] = { status: 'error', lastUpdated: Date.now() };
+        }
+      } catch (e) {
+         newStatus.files[file.name] = { status: 'error', lastUpdated: Date.now() };
+      }
+      // Update state incrementally for visual feedback if needed, 
+      // but here we batch update or just wait for small delay
+      await new Promise(r => setTimeout(r, 300)); // Small delay for UX
+    }
+
+    setBrainStatus(newStatus);
+    localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(newStatus));
+    setIsUpdatingBrain(false);
+    
+    setToast({
+      show: true,
+      message: `Đã nạp thành công ${successCount} tài liệu. Bộ não AI đã sẵn sàng!`
+    });
+
+    setTimeout(() => setToast(null), 5000);
+  };
 
   const handleIndustryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -131,7 +193,7 @@ const Step0Knowledge: React.FC<Step0Props> = ({ knowledge, onSave }) => {
              <h3 className="font-bold text-emerald-800 text-lg mb-1">Đã nạp kiến thức ngành: {knowledge.industry}</h3>
              <div className="space-y-2 text-sm text-emerald-700/90">
                 <p className="italic">"{knowledge.domainRules || "Sử dụng kiến thức chung (General Knowledge)."}"</p>
-                {knowledge.uploadedKnowledge && (
+                {(knowledge.uploadedKnowledge || knowledge.vaultContext) && (
                    <div className="flex gap-2 items-center text-xs bg-white/50 p-2 rounded">
                      <span>📂 <strong>Đã nạp tài liệu:</strong> Có dữ liệu tùy chỉnh.</span>
                    </div>
@@ -230,7 +292,7 @@ const Step0Knowledge: React.FC<Step0Props> = ({ knowledge, onSave }) => {
           <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100">
              <div className="flex justify-between items-center mb-4">
                  <h4 className="font-bold text-amber-900 text-sm flex items-center gap-2">
-                   📂 Tài liệu chuyên ngành (Knowledge Base)
+                   📁 Tài liệu Dự án (Project Knowledge)
                  </h4>
                  <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold uppercase">Text Extraction</span>
              </div>
@@ -300,24 +362,59 @@ const Step0Knowledge: React.FC<Step0Props> = ({ knowledge, onSave }) => {
           </div>
       </div>
 
-      {/* MARKETING BRAIN EXTENSION PANEL */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 rounded-2xl shadow-lg border border-gray-700 relative overflow-hidden">
+      {/* MARKETING BRAIN EXTENSION PANEL (GLOBAL) */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg border border-slate-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
               <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
           </div>
           <h4 className="font-bold text-emerald-400 flex items-center gap-2 mb-4">
-              <span className="animate-pulse">🟢</span> MODULE: MARKETING_BRAIN_V1
+              <span className="animate-pulse">🌐</span> MODULE: GLOBAL MARKETING BRAIN
           </h4>
           <div className="grid md:grid-cols-2 gap-6 relative z-10">
               <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Yêu cầu hệ thống (Recommended Files)</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Dữ liệu Toàn Cầu (Global System)</p>
                   <ul className="space-y-2 text-sm text-gray-300">
-                      <li className="flex items-center gap-2"><span className="text-emerald-500">📄</span> Marketing_Strategy_Core.txt</li>
-                      <li className="flex items-center gap-2"><span className="text-emerald-500">📄</span> Vietnam_Market_Insight.txt</li>
-                      <li className="flex items-center gap-2"><span className="text-emerald-500">📄</span> Viral_Content_Hooks.txt</li>
-                      <li className="flex items-center gap-2"><span className="text-emerald-500">📄</span> Visual_Prompting_Guide.txt</li>
+                      {GeminiService.GLOBAL_MARKETING_FILES.map((file) => {
+                         const status = brainStatus.files[file.name]?.status || 'pending';
+                         return (
+                            <li key={file.name} className="flex items-center gap-2">
+                                <span className="text-emerald-400">🌐</span> 
+                                <span className={status === 'error' ? "text-red-400" : ""}>{file.name}</span>
+                                {status === 'learned' && (
+                                   <span className="text-[10px] bg-emerald-900/80 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-700 flex items-center gap-1">
+                                      ✅ Đã học
+                                   </span>
+                                )}
+                                {status === 'error' && (
+                                   <span className="text-[10px] bg-red-900/80 text-red-300 px-1.5 py-0.5 rounded border border-red-700">
+                                      ⚠️ Lỗi
+                                   </span>
+                                )}
+                            </li>
+                         );
+                      })}
                   </ul>
-                  <p className="text-[10px] text-gray-500 mt-2 italic">* Upload các file này ở mục "Tài liệu chuyên ngành" phía trên để kích hoạt tối đa sức mạnh module.</p>
+                  
+                  {isUpdatingBrain ? (
+                     <div className="mt-4">
+                        <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+                           <div className="bg-emerald-500 h-2 rounded-full animate-progress w-2/3"></div>
+                        </div>
+                        <p className="text-[10px] text-emerald-400 animate-pulse text-center">Đang nạp kiến thức vào Gemini 2.5 Flash...</p>
+                     </div>
+                  ) : (
+                     <button
+                        onClick={handleUpdateGlobalBrain}
+                        className="mt-4 bg-blue-900/50 hover:bg-blue-800 text-blue-200 hover:text-white border border-blue-700 px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 w-full justify-center"
+                     >
+                        <span>🧠</span> Cập nhật Bộ Não AI
+                     </button>
+                  )}
+
+                  <p className="text-[10px] text-gray-500 mt-3 italic flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Dữ liệu này sẽ được lưu trữ toàn cục (Global Persistent).
+                  </p>
               </div>
               <div className="text-xs text-gray-400 border-l border-gray-700 pl-4">
                   <p className="mb-2"><strong className="text-white">Active Protocols:</strong></p>
@@ -378,6 +475,17 @@ const Step0Knowledge: React.FC<Step0Props> = ({ knowledge, onSave }) => {
               </div>
            </div>
         </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toast && toast.show && (
+         <div className="fixed bottom-4 right-4 bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slideUp z-50">
+            <span className="text-2xl">✅</span>
+            <div>
+               <h4 className="font-bold text-sm">Cập nhật thành công!</h4>
+               <p className="text-xs text-emerald-100">{toast.message}</p>
+            </div>
+         </div>
       )}
     </div>
   );

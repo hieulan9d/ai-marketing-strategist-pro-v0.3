@@ -7,9 +7,10 @@ import { FileText, Image as ImageIcon, Trash2, Upload, Loader2, FileJson, FileSp
 interface KnowledgeVaultProps {
     files: KnowledgeFile[];
     onUpdate: (files: KnowledgeFile[]) => void;
+    onTrain?: (files: KnowledgeFile[]) => void;
 }
 
-const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate }) => {
+const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate, onTrain }) => {
     const [isProcessing, setIsProcessing] = React.useState(false);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -17,7 +18,9 @@ const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate }) => {
         try {
             const newFiles = await Promise.all(acceptedFiles.map(processFile));
             // Append new files to existing ones
-            onUpdate([...files, ...newFiles]);
+            // Mark new files as 'pending'
+            const filesWithStatus = newFiles.map(f => ({ ...f, status: 'pending' as const }));
+            onUpdate([...files, ...filesWithStatus]);
         } catch (error) {
             console.error("Upload error", error);
             alert("Lỗi khi tải file. Vui lòng thử lại.");
@@ -26,6 +29,7 @@ const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate }) => {
         }
     }, [files, onUpdate]);
 
+    // @ts-ignore - Dropzone types compatibility
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
         onDrop,
         accept: {
@@ -105,7 +109,19 @@ const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate }) => {
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-800 truncate" title={file.name}>{file.name}</h4>
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-bold text-gray-800 truncate pr-2" title={file.name}>{file.name}</h4>
+                                        {/* STATUS BADGE */}
+                                        {file.status === 'learned' ? (
+                                            <span className="shrink-0 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-emerald-200">
+                                                ✅ Đã học
+                                            </span>
+                                        ) : (
+                                            <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold border border-amber-200">
+                                                ⏳ Chờ nạp
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-gray-500 mt-1">
                                         {(file.size / 1024).toFixed(1)} KB • {new Date(file.lastModified).toLocaleDateString()}
                                     </p>
@@ -115,13 +131,26 @@ const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate }) => {
                                 </div>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleDelete(file.id); }}
-                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                    className="absolute bottom-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Xóa file"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* TRAINING BUTTON */}
+            {files.length > 0 && onTrain && (
+                <div className="flex justify-center pt-6 border-t border-gray-200">
+                    <button
+                        onClick={() => onTrain(files)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex items-center gap-3 text-lg"
+                    >
+                        <span>💾</span> Nạp Kiến Thức & Phong Cách Vào AI
+                    </button>
                 </div>
             )}
         </div>
