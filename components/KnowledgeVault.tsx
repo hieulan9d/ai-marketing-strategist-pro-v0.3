@@ -97,11 +97,11 @@ const KnowledgeVault: React.FC<KnowledgeVaultProps> = ({ files, onUpdate, onTrai
 
             {/* File List */}
             {files.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {files.map(file => (
-                        <div key={file.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group relative">
+                        <div key={file.id} className="glass-panel p-5 relative group flex flex-col h-full hover:-translate-y-1 hover:shadow-2xl transition-all duration-500">
                             <div className="flex items-start gap-4">
-                                <div className="bg-gray-50 p-3 rounded-lg flex-shrink-0">
+                                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl flex-shrink-0 border border-zinc-100 dark:border-zinc-700">
                                     {file.preview ? (
                                         <img src={file.preview} alt={file.name} className="w-12 h-12 object-cover rounded-md" />
                                     ) : (

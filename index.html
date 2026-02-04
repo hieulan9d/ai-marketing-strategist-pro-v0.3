@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Marketing Strategist Pro (Bản Việt Hóa)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              emerald: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+                900: '#064e3b',
+              }
+            }
+          }
+        }
+      }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       :root {
@@ -13,6 +32,7 @@
       }
       body { 
         font-family: 'Inter', sans-serif; 
+        letter-spacing: -0.025em; /* tracking-tight */
         background-color: var(--bg-color);
         background-image: 
           radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%), 
@@ -23,25 +43,47 @@
         color: #1e293b;
       }
       
-      /* Glassmorphism Utilities - Refined for Dashboard */
+      /* Glassmorphism Utilities - Premium Creative Studio */
       .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        /* Base: bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl */
+        background-color: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 0.5px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* shadow-xl */
+        border-radius: 1rem; /* rounded-2xl */
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .dark .glass-panel {
+        background-color: rgba(9, 9, 11, 0.7); /* zinc-950/70 */
+        border-color: rgba(39, 39, 42, 0.5); /* zinc-800/50 */
+      }
+      .glass-panel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       }
       
+      /* Sidebar specific override if needed, or re-use glass-panel logic */
       .glass-sidebar {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(226, 232, 240, 0.8);
+        background-color: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-right: 0.5px solid rgba(255, 255, 255, 0.2);
+      }
+      .dark .glass-sidebar {
+        background-color: rgba(9, 9, 11, 0.7);
+        border-color: rgba(39, 39, 42, 0.5);
       }
 
       .glass-input {
         background: #fff;
         border: 1px solid #e2e8f0;
         transition: all 0.2s ease;
+      }
+      .dark .glass-input {
+        background: rgba(39, 39, 42, 0.5); /* zinc-800 */
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f4f4f5;
       }
       .glass-input:focus {
         border-color: #10b981;

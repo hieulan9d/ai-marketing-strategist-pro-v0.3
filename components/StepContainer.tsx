@@ -8,7 +8,7 @@ interface StepContainerProps {
   isActive: boolean;
   onStepClick?: () => void;
   children: ReactNode;
-  icon?: string;
+  icon?: ReactNode;
 }
 
 const StepContainer: React.FC<StepContainerProps> = ({ title, stepNumber, status, isActive, onStepClick, children, icon }) => {

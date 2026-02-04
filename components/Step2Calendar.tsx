@@ -61,20 +61,21 @@ const Step2Calendar: React.FC<Step2Props> = ({
       
       let holidayName = '';
       let holidayClass = '';
-      let badgeClass = 'bg-gray-100 text-gray-500'; // Default badge
+      let badgeClass = 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'; // Default badge
 
       // Specific Holidays 2026
       if (fullDateStr === '2026-02-14') { 
           holidayName = '💘 Valentine'; 
-          holidayClass = 'bg-pink-50 border-pink-300';
+          // Glowing aura instead of bg color
+          holidayClass = 'shadow-[0_0_20px_rgba(236,72,153,0.3)] border-pink-400/50';
           badgeClass = 'bg-pink-100 text-pink-700';
       } else if (fullDateStr === '2026-02-16') { 
           holidayName = '🎆 Giao Thừa'; 
-          holidayClass = 'bg-yellow-50 border-yellow-400';
+          holidayClass = 'shadow-[0_0_20px_rgba(234,179,8,0.3)] border-yellow-400/50';
           badgeClass = 'bg-yellow-100 text-yellow-800';
       } else if (fullDateStr === '2026-02-17') { 
           holidayName = '🧧 Mùng 1 Tết'; 
-          holidayClass = 'bg-red-50 border-red-400 ring-2 ring-red-200';
+          holidayClass = 'shadow-[0_0_25px_rgba(239,68,68,0.4)] border-red-500/60 ring-1 ring-red-500/20';
           badgeClass = 'bg-red-100 text-red-700 font-bold';
       } 
       // Tet Holiday Range (Feb 14 - Feb 22)
@@ -83,7 +84,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
           const tetEnd = new Date('2026-02-22');
           if (current >= tetStart && current <= tetEnd) {
               holidayName = '🌸 Nghỉ Tết';
-              holidayClass = 'bg-red-50/50 border-red-200';
+              holidayClass = 'border-red-200/50 shadow-[0_0_10px_rgba(239,68,68,0.1)]';
               badgeClass = 'bg-red-50 text-red-600';
           }
       }
@@ -242,7 +243,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
           {/* LEFT: DATE CONFIG & MEDIA CONFIG */}
           <div className="flex flex-col gap-3 w-full md:w-auto">
               {/* Start Date Input */}
-              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
                   <span className="text-xl">📅</span>
                   <div className="flex flex-col">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ngày bắt đầu</label>
@@ -257,7 +258,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
 
               {/* Media Config */}
               {mediaConfig && onUpdateMediaConfig && (
-                  <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex gap-4 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm">
                       <div className="flex flex-col gap-1">
                           <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
                               🖼️ Ảnh ({mediaConfig.imageCount})
@@ -303,10 +304,10 @@ const Step2Calendar: React.FC<Step2Props> = ({
                 key={day.day || index}
                 onClick={() => handleDayClick(index)}
                 className={`
-                flex flex-col h-40 p-3 text-left border rounded-2xl transition-all relative overflow-hidden group
+                flex flex-col h-40 p-4 text-left glass-panel relative overflow-hidden group
                 ${day.details 
-                    ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/90 border-emerald-200/60 shadow-sm' 
-                    : 'glass-panel hover:border-emerald-300 hover:shadow-md'
+                    ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+                    : 'hover:border-zinc-300 dark:hover:border-zinc-700'
                 }
                 ${holidayClass}
                 `}
@@ -317,15 +318,15 @@ const Step2Calendar: React.FC<Step2Props> = ({
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${badgeClass} mb-1 inline-block w-fit`}>
                             {holidayName || `Ngày ${day.day}`}
                         </span>
-                        <span className="text-xs font-semibold text-gray-600">
+                        <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400">
                             {dayLabel}
                         </span>
                     </div>
-                    {day.details && <span className="text-[10px] text-emerald-600 font-bold bg-white/80 px-1.5 py-0.5 rounded shadow-sm">✅</span>}
+                    {day.details && <span className="text-[10px] text-emerald-600 font-bold bg-white/80 dark:bg-zinc-800/80 px-1.5 py-0.5 rounded shadow-sm">✅</span>}
                 </div>
 
                 {/* Content Topic */}
-                <h4 className="text-xs font-semibold text-gray-800 leading-snug mb-2 line-clamp-3 group-hover:text-emerald-700 transition-colors flex-1">
+                <h4 className="text-xs font-semibold text-gray-800 dark:text-zinc-100 leading-snug mb-2 line-clamp-3 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors flex-1">
                     {day.topic}
                 </h4>
                 
@@ -352,7 +353,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
           <div className="glass-panel w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl shadow-2xl border-white/50 animate-fadeIn overflow-hidden" onClick={e => e.stopPropagation()}>
             
             {/* Modal Header - Fixed */}
-            <div className="p-6 border-b border-gray-200/50 flex justify-between items-start bg-white/80 backdrop-blur-xl z-10 shrink-0">
+            <div className="p-6 border-b border-gray-200/50 dark:border-zinc-800/50 flex justify-between items-start bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl z-10 shrink-0">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                     {(() => {
@@ -365,19 +366,19 @@ const Step2Calendar: React.FC<Step2Props> = ({
                     })()}
                     <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">{selectedDay.angle}</span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedDay.topic}</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 leading-tight">{selectedDay.topic}</h3>
                 
                 {/* Internal Tabs */}
                 <div className="flex mt-4 space-x-2">
                     <button 
                         onClick={() => setActiveTab('content')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'content' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'content' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
                     >
                         📝 Content & Media
                     </button>
                     <button 
                         onClick={() => setActiveTab('tiktok')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'tiktok' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'tiktok' ? 'bg-black dark:bg-zinc-950 text-white shadow-md' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
                     >
                         <span>🎬 TikTok Studio</span>
                         {selectedDay.details?.tiktokScript && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
@@ -391,7 +392,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
               </button>
             </div>
 
-            <div className="p-8 space-y-8 bg-white/40 flex-1 overflow-y-auto">
+            <div className="p-8 space-y-8 bg-white/40 dark:bg-zinc-900/40 flex-1 overflow-y-auto">
               {selectedDay.isLoading ? (
                 <div className="py-20 flex flex-col items-center justify-center text-gray-500">
                   <LoadingSpinner size="lg" color="text-emerald-500" />
@@ -405,14 +406,14 @@ const Step2Calendar: React.FC<Step2Props> = ({
                         
                         {/* NEW: Viral Hooks Section */}
                         {selectedDay.viralHooks && selectedDay.viralHooks.length > 0 && (
-                            <div className="glass-panel bg-white/60 p-6 rounded-2xl border-l-4 border-l-pink-500">
+                            <div className="glass-panel bg-white/60 dark:bg-zinc-800/60 p-6 rounded-2xl border-l-4 border-l-zinc-900 dark:border-l-zinc-100">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-bold text-pink-900 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                    <h4 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm uppercase tracking-wide">
                                         🪝 Viral Hooks (Tối ưu CTR)
                                     </h4>
                                     <button 
                                         onClick={() => selectedDayIndex !== null && onRegenerateHooks && onRegenerateHooks(selectedDayIndex)}
-                                        className="text-[10px] bg-pink-100 text-pink-600 px-2 py-1 rounded hover:bg-pink-200 transition-colors flex items-center gap-1 font-bold"
+                                        className="text-[10px] bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all duration-300 flex items-center gap-1 font-bold border border-zinc-200 dark:border-zinc-700"
                                         disabled={selectedDay.isLoading}
                                     >
                                         🔄 Làm mới Hook
@@ -420,12 +421,12 @@ const Step2Calendar: React.FC<Step2Props> = ({
                                 </div>
                                 <div className="grid gap-3">
                                     {selectedDay.viralHooks.map((hook, idx) => (
-                                        <div key={idx} className="bg-pink-50/50 p-3 rounded-lg border border-pink-100 text-sm font-medium text-gray-800 flex gap-3 items-start">
-                                            <span className="text-pink-400 font-bold shrink-0">#{idx + 1}</span>
-                                            <span>{hook}</span>
+                                        <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-medium text-gray-800 dark:text-zinc-200 flex gap-3 items-start hover:border-zinc-300 transition-colors duration-300">
+                                            <span className="text-zinc-400 font-bold shrink-0">#{idx + 1}</span>
+                                            <span className="leading-relaxed">{hook}</span>
                                             <button 
                                                 onClick={() => navigator.clipboard.writeText(hook)}
-                                                className="ml-auto text-gray-300 hover:text-pink-500 transition-colors"
+                                                className="ml-auto text-gray-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
                                                 title="Copy"
                                             >
                                                 📋
@@ -437,21 +438,21 @@ const Step2Calendar: React.FC<Step2Props> = ({
                         )}
 
                         {/* Caption Section */}
-                        <div className="glass-panel bg-white/60 p-6 rounded-2xl border-l-4 border-l-emerald-500">
-                            <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <div className="glass-panel bg-white/60 dark:bg-zinc-800/60 p-6 rounded-2xl border-l-4 border-l-emerald-500">
+                            <h4 className="font-bold text-emerald-900 dark:text-emerald-400 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
                             ✍️ Nội dung bài viết (Caption)
                             </h4>
-                            <p className="text-gray-700 text-sm whitespace-pre-wrap font-sans leading-7">
+                            <p className="text-gray-700 dark:text-zinc-300 text-sm whitespace-pre-wrap font-sans leading-7">
                             {selectedDay.details.caption}
                             </p>
                         </div>
 
                         {/* Visual Section */}
-                        <div className="glass-panel bg-white/60 p-6 rounded-2xl">
-                            <h4 className="font-bold text-purple-900 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <div className="glass-panel bg-white/60 dark:bg-zinc-800/60 p-6 rounded-2xl">
+                            <h4 className="font-bold text-purple-900 dark:text-purple-400 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
                             🎨 Studio Sáng Tạo
                             </h4>
-                            <p className="text-gray-500 text-xs italic mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p className="text-gray-500 dark:text-zinc-400 text-xs italic mb-6 bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg border border-gray-100 dark:border-zinc-700">
                             Câu lệnh (Prompt): "{selectedDay.details.visualPrompt}"
                             </p>
 

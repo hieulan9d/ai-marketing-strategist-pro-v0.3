@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from 'next-themes';
+import { 
+  Sun, Moon, 
+  BrainCircuit, BookOpen, ScanSearch, Target, CalendarDays, 
+  Megaphone, Repeat, Crown, DraftingCompass, Zap, LayoutDashboard,
+  FolderOpen, Key, Package
+} from 'lucide-react';
 import { AppState, StepStatus, KOLData, AdMetrics, DayPlan, RealityAnalysis } from './types';
 import * as GeminiService from './services/geminiService';
 import * as ProjectService from './services/projectService'; // Import Service
@@ -103,6 +110,12 @@ const App: React.FC = () => {
   // API Key Modal State
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Prevent hydration mismatch
+  useEffect(() => setMounted(true), []);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Use lazy initialization for state
@@ -835,28 +848,30 @@ const App: React.FC = () => {
 
   // --- RENDER HELPERS ---
   const NAVIGATION_STEPS = [
-    { id: 10, icon: '🧠', title: 'Bộ Não Marketing' }, // GLOBAL BRAIN - PRIORITY 1
-    { id: 0, icon: '📚', title: 'Kiến Thức Ngành' }, // Changed Icon to avoid duplicate
-    { id: 1, icon: '🕵️', title: 'Điệp Viên & Nghiên Cứu' },
-    { id: 2, icon: '🎯', title: 'Chiến Lược Cốt Lõi' },
-    { id: 3, icon: '📅', title: 'Lịch 30 Ngày' },
+    { id: 10, icon: BrainCircuit, title: 'Bộ Não Marketing' }, // GLOBAL BRAIN - PRIORITY 1
+    { id: 0, icon: BookOpen, title: 'Kiến Thức Ngành' }, // Changed Icon to avoid duplicate
+    { id: 1, icon: ScanSearch, title: 'Điệp Viên & Nghiên Cứu' },
+    { id: 2, icon: Target, title: 'Chiến Lược Cốt Lõi' },
+    { id: 3, icon: CalendarDays, title: 'Lịch 30 Ngày' },
     // Step 4 Removed
-    { id: 5, icon: '💸', title: 'Quản Lý Ads' },
-    { id: 6, icon: '♻️', title: 'Tái Chế Nội Dung' },
+    { id: 5, icon: Megaphone, title: 'Quản Lý Ads' },
+    { id: 6, icon: Repeat, title: 'Tái Chế Nội Dung' },
     // Reserved Modules
-    { id: 7, icon: '👸', title: 'KOL AI Độc Quyền' }, // UNLOCKED
-    { id: 8, icon: '📐', title: 'Infographic Architect' }, // NEW MODULE
-    { id: 9, icon: '⚡', title: 'Tự Động Hóa N8N', isComingSoon: true }
+    { id: 7, icon: Crown, title: 'KOL AI Độc Quyền' }, // UNLOCKED
+    { id: 8, icon: DraftingCompass, title: 'Infographic Architect' }, // NEW MODULE
+    { id: 9, icon: Zap, title: 'Tự Động Hóa N8N', isComingSoon: true }
   ];
 
   // REMOVED: Blocking Screen Check "if (!hasApiKey) return ..."
   // Users can now enter the app and connect the key later via the sidebar.
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50/50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50/50 dark:bg-zinc-950 transition-colors duration-300">
       {/* MOBILE HEADER */}
-      <div className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-50">
-         <div className="flex items-center gap-2 font-bold text-gray-800">
+      <div className="md:hidden bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-50">
+         <div className="flex items-center gap-2 font-bold text-gray-800 dark:text-zinc-100">
              <span className="text-xl">🤖</span> AI Strategist
          </div>
          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-gray-100 rounded-lg">
@@ -866,26 +881,29 @@ const App: React.FC = () => {
 
       {/* REFACTORED SIDEBAR NAVIGATION */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out md:translate-x-0 md:static md:h-screen flex flex-col
-        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl w-72' : '-translate-x-full'}
-        ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}
+        fixed inset-y-0 left-0 z-40 
+        bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border border-white/20 dark:border-zinc-800/50 shadow-xl rounded-2xl
+        m-4 h-[calc(100vh-2rem)]
+        transform transition-all duration-300 ease-in-out md:translate-x-0 md:static flex flex-col
+        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl w-64' : '-translate-x-full'}
+        ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}
       `}>
          {/* Logo Area */}
-         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+         <div className="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
              <div className="flex items-center gap-3 overflow-hidden">
                  <div className="w-10 h-10 min-w-[2.5rem] bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                  </div>
                  {/* Hide Text if Collapsed */}
                  <div className={`transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
-                     <h1 className="font-bold text-gray-800 tracking-tight leading-none whitespace-nowrap">AI Strategist</h1>
-                     <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider whitespace-nowrap">Pro Dashboard</span>
+                     <h1 className="font-bold text-gray-800 dark:text-zinc-100 tracking-tight leading-none whitespace-nowrap">AI Strategist</h1>
+                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider whitespace-nowrap">Pro Dashboard</span>
                  </div>
              </div>
              {/* Toggle Button (Desktop Only) */}
              <button 
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="hidden md:flex p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                className="hidden md:flex p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
                 title={isSidebarCollapsed ? "Mở rộng" : "Thu gọn"}
              >
                 {isSidebarCollapsed ? (
@@ -909,13 +927,17 @@ const App: React.FC = () => {
                         onClick={() => !isComingSoon && handleStepClick(step.id)}
                         disabled={!isUnlocked || isComingSoon}
                         className={`
-                            group relative w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all
-                            ${isActive ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
+                            group relative w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-300
+                            ${isActive ? 'text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.3)] bg-emerald-500/5 border border-emerald-500/20' : 'text-zinc-500 dark:text-zinc-400 hover:bg-white/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200'}
                             ${(!isUnlocked || isComingSoon) ? 'opacity-50 cursor-not-allowed' : ''}
                             ${isSidebarCollapsed ? 'justify-center' : ''}
                         `}
                      >
-                         <span className={`text-xl transition-transform ${isActive && !isSidebarCollapsed ? 'scale-110' : ''}`}>{step.icon}</span>
+                         <step.icon 
+                            strokeWidth={1.2} 
+                            size={20} 
+                            className={`transition-transform duration-300 ${isActive ? 'text-emerald-600 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-zinc-400 group-hover:text-zinc-600'} ${isActive && !isSidebarCollapsed ? 'scale-110' : ''}`} 
+                         />
                          
                          {!isSidebarCollapsed && (
                              <>
@@ -943,14 +965,26 @@ const App: React.FC = () => {
          </nav>
 
          {/* Bottom Actions */}
-         <div className="p-4 bg-gray-50 border-t border-gray-200 space-y-3">
+         <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 border-t border-gray-200 dark:border-zinc-800 space-y-3">
+             {/* THEME TOGGLE */}
+             <button 
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={`relative group w-full py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-gray-500 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 transition-all flex items-center justify-center gap-2 
+                    ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
+             >
+                <span className="group-hover:rotate-45 transition-transform duration-300 text-lg">
+                    {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+                </span>
+                {!isSidebarCollapsed && (theme === 'dark' ? 'Dark Mode' : 'Light Mode')}
+             </button>
+
              {/* PROJECT MANAGEMENT BUTTON */}
              <button 
                 onClick={() => setShowProjectManager(true)}
-                className={`relative group w-full py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-500 hover:text-emerald-600 hover:border-emerald-200 transition-colors flex items-center justify-center gap-2 
+                className={`relative group w-full py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 transition-all duration-300 flex items-center justify-center gap-2 
                     ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
              >
-                <span className="group-hover:scale-110 transition-transform text-lg">📂</span> 
+                <FolderOpen size={18} strokeWidth={1.2} className="group-hover:scale-110 transition-transform" /> 
                 {!isSidebarCollapsed && 'Quản lý Dự án'}
                 
                 {/* Tooltip */}
@@ -964,10 +998,10 @@ const App: React.FC = () => {
 
              <button 
                 onClick={() => setShowApiKeyModal(true)}
-                className={`relative group w-full py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-500 hover:text-emerald-600 hover:border-emerald-200 transition-colors flex items-center justify-center gap-2 
+                className={`relative group w-full py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 transition-all duration-300 flex items-center justify-center gap-2 
                     ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
              >
-                <span className="group-hover:scale-110 transition-transform text-lg">🔑</span> 
+                <Key size={18} strokeWidth={1.2} className="group-hover:scale-110 transition-transform" />
                 {!isSidebarCollapsed && (hasApiKey ? 'Đổi API Key' : 'Kết nối API Key')}
                 
                 {/* Tooltip */}
@@ -982,13 +1016,13 @@ const App: React.FC = () => {
              <button 
                 onClick={handleDownloadZip}
                 disabled={isZipping}
-                className={`relative group w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-gray-300
+                className={`relative group w-full py-3 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-zinc-200/50
                     ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}
              >
                  {isZipping ? (
                      <div className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
                  ) : (
-                     <span className="text-lg">📦</span>
+                     <Package size={18} strokeWidth={1.2} />
                  )}
                  {!isSidebarCollapsed && 'Tải Trọn Bộ (ZIP)'}
 
@@ -1004,7 +1038,7 @@ const App: React.FC = () => {
       </aside>
 
       {/* MAIN WORKSPACE */}
-      <main className="flex-1 h-screen overflow-y-auto bg-slate-50 relative p-6">
+      <main className="flex-1 h-screen overflow-y-auto bg-slate-50 dark:bg-zinc-950 relative p-6 transition-colors duration-300">
           
           {/* STATIC HEADER WITH PROJECT ACTIONS */}
           <div style={{background: 'linear-gradient(to right, #2196F3, #21CBF3)', padding: '20px', borderRadius: '10px', color: 'white', textAlign: 'center', marginBottom: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', position: 'relative'}}>
@@ -1063,7 +1097,7 @@ const App: React.FC = () => {
           >
               <StepContainer 
                 title="Kiến Thức Ngành" stepNumber={0} 
-                icon="🧠"
+                icon={<BookOpen size={28} />}
                 status={getStepStatus(0)} isActive={state.currentStep === 0}
               >
                  <Step0Knowledge knowledge={state.knowledge} onSave={handleSaveKnowledge} />
@@ -1071,7 +1105,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Điệp Viên & Nghiên Cứu" stepNumber={1} 
-                icon="🕵️"
+                icon={<ScanSearch size={28} />}
                 status={getStepStatus(1)} isActive={state.currentStep === 1}
               >
                  <StepSpyResearch 
@@ -1084,7 +1118,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Chiến Lược Cốt Lõi" stepNumber={2} 
-                icon="🎯"
+                icon={<Target size={28} />}
                 status={getStepStatus(2)} isActive={state.currentStep === 2}
               >
                 <Step1Strategy 
@@ -1096,7 +1130,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Kế Hoạch Đăng Bài 30 Ngày" stepNumber={3} 
-                icon="📅"
+                icon={<CalendarDays size={28} />}
                 status={getStepStatus(3)} isActive={state.currentStep === 3}
               >
                  <Step2Calendar 
@@ -1106,6 +1140,8 @@ const App: React.FC = () => {
                    onGenerateTikTokScript={handleGenerateTikTokScript}
                    onUpdateCalendar={handleUpdateCalendar}
                    onRegenerateHooks={handleRegenerateHooks} // NEW PROP
+                   mediaConfig={state.mediaConfig}
+                   onUpdateMediaConfig={handleUpdateMediaConfig}
                    calendar={state.calendar}
                    isLoading={state.isGeneratingCalendar}
                    projectName="AI Marketing Project"
@@ -1116,7 +1152,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Quản Lý Vòng Đời Chiến Dịch" stepNumber={5} 
-                icon="💸"
+                icon={<Megaphone size={28} />}
                 status={getStepStatus(5)} isActive={state.currentStep === 5}
               >
                 <Step4Ads 
@@ -1133,7 +1169,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Xưởng Tái Chế Nội Dung" stepNumber={6} 
-                icon="♻️"
+                icon={<Repeat size={28} />}
                 status={getStepStatus(6)} isActive={state.currentStep === 6}
               >
                 <StepRepurposing 
@@ -1147,7 +1183,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="KOL AI Độc Quyền" stepNumber={7} 
-                icon="👸"
+                icon={<Crown size={28} />}
                 status={getStepStatus(7)} isActive={state.currentStep === 7}
               >
                 <Step7KOL 
@@ -1159,7 +1195,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Infographic Architect" stepNumber={8} 
-                icon="📐"
+                icon={<DraftingCompass size={28} />}
                 status={getStepStatus(8)} isActive={state.currentStep === 8}
               >
                 {state.infographic && (
@@ -1172,7 +1208,7 @@ const App: React.FC = () => {
 
               <StepContainer 
                 title="Bộ Não Marketing (Knowledge Vault)" stepNumber={10} 
-                icon="🧠"
+                icon={<BrainCircuit size={28} />}
                 status={getStepStatus(10)} isActive={state.currentStep === 10}
               >
                 <KnowledgeVault 
