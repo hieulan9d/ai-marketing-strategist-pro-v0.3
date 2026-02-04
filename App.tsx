@@ -6,7 +6,6 @@ import StepContainer from './components/StepContainer';
 import Step0Knowledge from './components/Step0Knowledge';
 import Step1Strategy from './components/Step1Strategy';
 import Step2Calendar from './components/Step2Calendar';
-import Step3Creative from './components/Step3Creative';
 import Step4Ads from './components/Step4Ads';
 import StepSpyResearch from './components/StepSpyResearch';
 import StepRepurposing from './components/StepRepurposing';
@@ -33,7 +32,6 @@ const getInitialState = (): AppState => ({
   currentStep: 0, 
   strategy: null,
   calendar: [],
-  creative: null,
   adsCampaigns: [],
   spy: {
     competitorInput: '',
@@ -86,7 +84,6 @@ const getInitialState = (): AppState => ({
 
   isGeneratingStrategy: false,
   isGeneratingCalendar: false,
-  isGeneratingCreative: false,
   isGeneratingAds: false,
 });
 
@@ -305,7 +302,20 @@ const App: React.FC = () => {
         }
       }
 
-      const newState = getInitialState();
+      // PRESERVE GLOBAL STATE (Knowledge Vault)
+      // The requirement is that Vault Files are Global-Persistent and should not be cleared.
+      const globalVaultFiles = state.knowledgeVault;
+      const globalVaultContext = state.knowledge.vaultContext;
+
+      const baseState = getInitialState();
+      const newState: AppState = {
+          ...baseState,
+          knowledgeVault: globalVaultFiles, // Keep files
+          knowledge: { 
+              ...baseState.knowledge, 
+              vaultContext: globalVaultContext // Keep context active
+          }
+      };
       
       // OPTIMISTIC UPDATE: Update UI immediately so user feels "New Project" happens instantly
       setState(newState);
@@ -444,8 +454,8 @@ const App: React.FC = () => {
     if (step === 1) return state.knowledge.isConfirmed;
     if (step === 2) return state.knowledge.isConfirmed;
     if (step === 3) return !!state.strategy;
-    if (step === 4) return state.calendar.length > 0;
-    if (step === 5) return !!state.creative;
+    // Step 4 (Creative) Removed
+    if (step === 5) return state.calendar.length > 0; // Ads unlocked by Calendar? Or Strategy? Usually Ads need Strategy. Let's say Calendar for flow.
     if (step === 6) return true;
     if (step === 7) return true; // KOL Unlocked
     if (step === 8) return true; // Infographic Unlocked
@@ -462,7 +472,7 @@ const App: React.FC = () => {
         case 1: return (state.spy.competitorResult || state.spy.insightResult || state.spy.trendResult) ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 2: return state.strategy ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 3: return state.calendar.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
-        case 4: return state.creative ? StepStatus.COMPLETED : StepStatus.PENDING;
+        // Step 4 Removed
         case 5: return state.adsCampaigns.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 6: return (state.repurposing.carouselResult || state.repurposing.infographicResult || state.repurposing.videoScriptResult || state.repurposing.emailSequenceResult) ? StepStatus.COMPLETED : StepStatus.PENDING;
         case 7: return state.kol.generatedImages.length > 0 ? StepStatus.COMPLETED : StepStatus.PENDING;
@@ -586,6 +596,25 @@ const App: React.FC = () => {
       setState(prev => ({ ...prev, calendar: newCalendar }));
   };
 
+  const handleRegenerateHooks = async (dayIndex: number) => {
+      const day = state.calendar[dayIndex];
+      const newCalendar = [...state.calendar];
+      newCalendar[dayIndex] = { ...day, isLoading: true };
+      setState(prev => ({ ...prev, calendar: newCalendar }));
+      
+      try {
+          const hooks = await GeminiService.regenerateViralHooks(day.topic, day.angle, state.knowledge);
+          const calendarDone = [...state.calendar];
+          calendarDone[dayIndex] = { ...day, viralHooks: hooks, isLoading: false };
+          setState(prev => ({ ...prev, calendar: calendarDone }));
+      } catch (e) {
+          const calendarError = [...state.calendar];
+          calendarError[dayIndex] = { ...day, isLoading: false };
+          setState(prev => ({ ...prev, calendar: calendarError }));
+          alert("Lỗi tạo lại Hooks: " + (e as any).message);
+      }
+  };
+
   const handleGenerateDayDetail = async (dayIndex: number) => {
     if (!state.strategy) return;
     const dayToUpdate = state.calendar[dayIndex];
@@ -670,14 +699,7 @@ const App: React.FC = () => {
       setState(prev => ({ ...prev, calendar: calendarError }));
     }
   };
-  const handleGenerateCreative = async () => {
-    if (!state.strategy) return;
-    setState(prev => ({ ...prev, isGeneratingCreative: true }));
-    try {
-      const creative = await GeminiService.generateCreative(state.strategy, state.knowledge, state.mediaConfig);
-      setState(prev => ({ ...prev, creative, currentStep: 5, isGeneratingCreative: false }));
-    } catch (error) { setState(prev => ({ ...prev, isGeneratingCreative: false })); }
-  };
+  // handleGenerateCreative REMOVED
   const handleCreateAdCampaign = async (customRequirements?: string) => {
     if (!state.strategy) return;
     setState(prev => ({ ...prev, isGeneratingAds: true }));
@@ -818,7 +840,7 @@ const App: React.FC = () => {
     { id: 1, icon: '🕵️', title: 'Điệp Viên & Nghiên Cứu' },
     { id: 2, icon: '🎯', title: 'Chiến Lược Cốt Lõi' },
     { id: 3, icon: '📅', title: 'Lịch 30 Ngày' },
-    { id: 4, icon: '🎨', title: 'Sáng Tạo & Viral' },
+    // Step 4 Removed
     { id: 5, icon: '💸', title: 'Quản Lý Ads' },
     { id: 6, icon: '♻️', title: 'Tái Chế Nội Dung' },
     // Reserved Modules
@@ -1082,24 +1104,15 @@ const App: React.FC = () => {
                    onGenerateDetail={handleGenerateDayDetail}
                    onGenerateMedia={handleGenerateMediaForDay}
                    onGenerateTikTokScript={handleGenerateTikTokScript}
-                   onUpdateCalendar={handleUpdateCalendar} // NEW PROP PASSED
+                   onUpdateCalendar={handleUpdateCalendar}
+                   onRegenerateHooks={handleRegenerateHooks} // NEW PROP
                    calendar={state.calendar}
                    isLoading={state.isGeneratingCalendar}
                    projectName="AI Marketing Project"
                  />
               </StepContainer>
 
-              <StepContainer 
-                title="Sáng Tạo & Viral Hooks" stepNumber={4} 
-                icon="🎨"
-                status={getStepStatus(4)} isActive={state.currentStep === 4}
-              >
-                <Step3Creative 
-                  onGenerate={handleGenerateCreative}
-                  data={state.creative}
-                  isLoading={state.isGeneratingCreative}
-                />
-              </StepContainer>
+              {/* Step 4 Removed */}
 
               <StepContainer 
                 title="Quản Lý Vòng Đời Chiến Dịch" stepNumber={5} 

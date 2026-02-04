@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import templateLibrary from '../data/Template_Library.json';
 import { 
-  StrategyData, DayPlan, DayDetail, CreativeData, AdsData, 
+  StrategyData, DayPlan, DayDetail, AdsData, 
   CompetitorAudit, InsightMining, TrendPrediction,
   RepurposeCarousel, RepurposeInfographic, RepurposeVideoScript, RepurposeEmailSequence,
   KnowledgeData, TikTokScriptData, AdMetrics, AdAnalysis, RealityAnalysis
@@ -696,15 +696,25 @@ export const generateCalendarOverview = async (strategy: StrategyData, knowledge
   const context = await buildContext(knowledge);
   const prompt = `
     ${context}
-    Role: Content Planner.
+    Role: Content Planner & Strategic Copywriter.
     Language: Vietnamese.
     Context: Persona: ${strategy.persona}, USP: ${strategy.usp}.
     Task: Lên lịch 30 ngày.
     
+    SPECIAL INSTRUCTION: 
+    - Check the REAL-TIME CONTEXT for date-specific events (e.g. Tet Holiday, Valentine).
+    - If dates fall into Tet Holiday (Feb 14-22), prioritize topics like "Cà phê Tết", "Du xuân", "Lì xì".
+    - For EACH day, generate 3 Viral Hooks (Headlines) using these techniques: [Curiosity], [Warning/Negative], [List/How-to].
+
     Output JSON object with key 'days' containing array:
     {
       "days": [
-        {"day": 1, "topic": "string", "angle": "string"}
+        {
+          "day": 1, 
+          "topic": "string", 
+          "angle": "string", 
+          "viralHooks": ["Hook 1 (Tò mò)", "Hook 2 (Cảnh báo)", "Hook 3 (Danh sách)"]
+        }
       ]
     }
   `;
@@ -807,6 +817,33 @@ export const adaptCalendar = async (
   return newCalendar;
 };
 
+export const regenerateViralHooks = async (topic: string, angle: string, knowledge?: KnowledgeData): Promise<string[]> => {
+  const ai = getAiClient();
+  const context = await buildContext(knowledge);
+  const prompt = `
+    ${context}
+    Role: Strategic Copywriter.
+    Language: Vietnamese.
+    Task: Regenerate 3 Viral Hooks for topic: "${topic}" (Angle: ${angle}).
+    Techniques: 1. Curiosity (Gây tò mò), 2. Warning/Mistake (Cảnh báo/Sai lầm), 3. List/Benefit (Danh sách/Lợi ích).
+    Check date context if applicable.
+    
+    Output JSON:
+    {
+      "viralHooks": ["string", "string", "string"]
+    }
+  `;
+
+  const response = await ai.models.generateContent({
+    model: await getOptimalModel(),
+    contents: prompt,
+    config: { responseMimeType: "application/json" },
+  });
+
+  const parsed = parseResponse(response.text);
+  return parsed.viralHooks || [];
+};
+
 export const generateTikTokScript = async (topic: string, angle: string, knowledge?: KnowledgeData): Promise<TikTokScriptData> => {
   const ai = getAiClient();
   const context = await buildContext(knowledge);
@@ -832,37 +869,6 @@ export const generateTikTokScript = async (topic: string, angle: string, knowled
   });
 
   return parseResponse(response.text) as TikTokScriptData;
-};
-
-export const generateCreative = async (strategy: StrategyData, knowledge?: KnowledgeData, mediaConfig?: { imageCount: number; videoCount: number }): Promise<CreativeData> => {
-  const ai = getAiClient();
-  const context = await buildContext(knowledge);
-  
-  // Use config or defaults
-  const videoLimit = mediaConfig?.videoCount || 3;
-  const imageLimit = mediaConfig?.imageCount || 3;
-
-  const prompt = `
-    ${context}
-    Role: Creative Director.
-    Language: Vietnamese.
-    Task: Viral Assets.
-    CONSTRAINT: Generate exactly ${videoLimit} Viral Hooks (Video Ideas) and ${imageLimit} KOL Concepts (Image Ideas).
-    
-    Output JSON:
-    {
-      "viralHooks": ["string", "string"],
-      "seedingMasterPlan": "string",
-      "kolConcepts": ["string", "string"]
-    }
-  `;
-  
-  const response = await ai.models.generateContent({
-    model: await getOptimalModel(),
-    contents: prompt,
-    config: { responseMimeType: "application/json" },
-  });
-  return parseResponse(response.text) as CreativeData;
 };
 
 export const generateAds = async (strategy: StrategyData, customRequirements?: string, knowledge?: KnowledgeData): Promise<AdsData> => {

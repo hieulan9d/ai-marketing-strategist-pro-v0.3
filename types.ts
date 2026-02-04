@@ -35,14 +35,9 @@ export interface DayPlan {
   day: number;
   topic: string;
   angle: string;
+  viralHooks?: string[]; // New: Strategic Copywriter
   details?: DayDetail | null;
   isLoading?: boolean;
-}
-
-export interface CreativeData {
-  viralHooks: string[];
-  seedingMasterPlan: string;
-  kolConcepts: string[];
 }
 
 export interface AdsData {
@@ -284,10 +279,8 @@ export interface AppState {
   currentStep: number;
   strategy: StrategyData | null;
   calendar: DayPlan[];
-  creative: CreativeData | null;
   adsCampaigns: AdCampaign[]; // Changed from 'ads' to array
   isGeneratingStrategy: boolean;
   isGeneratingCalendar: boolean;
-  isGeneratingCreative: boolean;
   isGeneratingAds: boolean;
 }

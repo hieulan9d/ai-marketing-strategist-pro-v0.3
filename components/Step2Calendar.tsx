@@ -10,6 +10,7 @@ interface Step2Props {
   onGenerateMedia: (dayIndex: number, type: 'image' | 'video', prompt?: string) => Promise<void>;
   onGenerateTikTokScript: (dayIndex: number) => Promise<void>;
   onUpdateCalendar?: (newCalendar: DayPlan[]) => void;
+  onRegenerateHooks?: (dayIndex: number) => Promise<void>; // New Prop
   calendar: DayPlan[];
   isLoading: boolean;
   projectName?: string;
@@ -23,6 +24,7 @@ const Step2Calendar: React.FC<Step2Props> = ({
     onGenerateMedia, 
     onGenerateTikTokScript,
     onUpdateCalendar,
+    onRegenerateHooks,
     calendar, 
     isLoading, 
     projectName = 'du-an',
@@ -32,6 +34,9 @@ const Step2Calendar: React.FC<Step2Props> = ({
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'tiktok'>('content');
   
+  // --- DATE STATE ---
+  const [startDate, setStartDate] = useState('2026-02-04');
+
   // --- DYNAMIC INSERT STATE ---
   const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
   const [insertText, setInsertText] = useState('');
@@ -40,6 +45,51 @@ const Step2Calendar: React.FC<Step2Props> = ({
   const insertFileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedDay = selectedDayIndex !== null && calendar[selectedDayIndex] ? calendar[selectedDayIndex] : null;
+
+  // --- DATE LOGIC HELPER ---
+  const getDayInfo = (dayIndex: number) => {
+      const start = new Date(startDate);
+      const current = new Date(start);
+      current.setDate(start.getDate() + dayIndex);
+      
+      const dayOfWeek = current.getDay(); // 0=Sun
+      const dateStr = current.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      const fullDateStr = current.toISOString().split('T')[0];
+      
+      const dayNames = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
+      const dayLabel = `${dayNames[dayOfWeek]}, ${dateStr}`;
+      
+      let holidayName = '';
+      let holidayClass = '';
+      let badgeClass = 'bg-gray-100 text-gray-500'; // Default badge
+
+      // Specific Holidays 2026
+      if (fullDateStr === '2026-02-14') { 
+          holidayName = '💘 Valentine'; 
+          holidayClass = 'bg-pink-50 border-pink-300';
+          badgeClass = 'bg-pink-100 text-pink-700';
+      } else if (fullDateStr === '2026-02-16') { 
+          holidayName = '🎆 Giao Thừa'; 
+          holidayClass = 'bg-yellow-50 border-yellow-400';
+          badgeClass = 'bg-yellow-100 text-yellow-800';
+      } else if (fullDateStr === '2026-02-17') { 
+          holidayName = '🧧 Mùng 1 Tết'; 
+          holidayClass = 'bg-red-50 border-red-400 ring-2 ring-red-200';
+          badgeClass = 'bg-red-100 text-red-700 font-bold';
+      } 
+      // Tet Holiday Range (Feb 14 - Feb 22)
+      else {
+          const tetStart = new Date('2026-02-14');
+          const tetEnd = new Date('2026-02-22');
+          if (current >= tetStart && current <= tetEnd) {
+              holidayName = '🌸 Nghỉ Tết';
+              holidayClass = 'bg-red-50/50 border-red-200';
+              badgeClass = 'bg-red-50 text-red-600';
+          }
+      }
+
+      return { dayLabel, holidayName, holidayClass, badgeClass };
+  };
 
   if (calendar.length === 0) {
     return (
@@ -186,40 +236,58 @@ const Step2Calendar: React.FC<Step2Props> = ({
 
   return (
     <div className="relative animate-fadeIn">
-      {/* Dynamic Insert Button */}
+      {/* Dynamic Insert & Config Panel */}
       <div className="mb-6 flex flex-col md:flex-row justify-between items-end gap-4">
-          {/* MEDIA CONFIG PANEL */}
-          {mediaConfig && onUpdateMediaConfig && (
-              <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                  <div className="flex flex-col gap-1">
-                      <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-                          🖼️ Số lượng ảnh ({mediaConfig.imageCount})
-                      </label>
+          
+          {/* LEFT: DATE CONFIG & MEDIA CONFIG */}
+          <div className="flex flex-col gap-3 w-full md:w-auto">
+              {/* Start Date Input */}
+              <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+                  <span className="text-xl">📅</span>
+                  <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ngày bắt đầu</label>
                       <input 
-                          type="range" min="1" max="5" step="1"
-                          value={mediaConfig.imageCount}
-                          onChange={(e) => onUpdateMediaConfig({ imageCount: parseInt(e.target.value) })}
-                          className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                      />
-                  </div>
-                  <div className="w-px bg-gray-200"></div>
-                  <div className="flex flex-col gap-1">
-                      <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-                          🎥 Số lượng video ({mediaConfig.videoCount})
-                      </label>
-                      <input 
-                          type="range" min="1" max="3" step="1"
-                          value={mediaConfig.videoCount}
-                          onChange={(e) => onUpdateMediaConfig({ videoCount: parseInt(e.target.value) })}
-                          className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                          type="date" 
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="text-sm font-bold text-gray-700 outline-none bg-transparent"
                       />
                   </div>
               </div>
-          )}
+
+              {/* Media Config */}
+              {mediaConfig && onUpdateMediaConfig && (
+                  <div className="flex gap-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex flex-col gap-1">
+                          <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                              🖼️ Ảnh ({mediaConfig.imageCount})
+                          </label>
+                          <input 
+                              type="range" min="1" max="5" step="1"
+                              value={mediaConfig.imageCount}
+                              onChange={(e) => onUpdateMediaConfig({ imageCount: parseInt(e.target.value) })}
+                              className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                          />
+                      </div>
+                      <div className="w-px bg-gray-200"></div>
+                      <div className="flex flex-col gap-1">
+                          <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                              🎥 Video ({mediaConfig.videoCount})
+                          </label>
+                          <input 
+                              type="range" min="1" max="3" step="1"
+                              value={mediaConfig.videoCount}
+                              onChange={(e) => onUpdateMediaConfig({ videoCount: parseInt(e.target.value) })}
+                              className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+                          />
+                      </div>
+                  </div>
+              )}
+          </div>
 
           <button 
              onClick={() => setIsInsertModalOpen(true)}
-             className="px-5 py-2.5 bg-[#FFD700] hover:bg-[#F5C500] text-black font-bold rounded-xl shadow-md flex items-center gap-2 transition-transform hover:scale-105"
+             className="px-5 py-3 bg-[#FFD700] hover:bg-[#F5C500] text-black font-bold rounded-xl shadow-md flex items-center gap-2 transition-transform hover:scale-105"
           >
              <span>⚡ Chèn & Thích Nghi (Dynamic Insert)</span>
           </button>
@@ -227,38 +295,55 @@ const Step2Calendar: React.FC<Step2Props> = ({
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-4">
-        {calendar.map((day, index) => (
-          <button
-            key={day.day || index}
-            onClick={() => handleDayClick(index)}
-            className={`
-              flex flex-col h-36 p-4 text-left border rounded-2xl transition-all relative overflow-hidden group
-              ${day.details 
-                ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/90 border-emerald-200/60 shadow-sm' 
-                : 'glass-panel hover:border-emerald-300 hover:shadow-md'
-              }
-            `}
-          >
-            <div className="flex justify-between w-full mb-2">
-              <span className={`text-xs font-bold px-2 py-1 rounded-md ${day.details ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                Ngày {day.day}
-              </span>
-              {day.details && <span className="text-[10px] text-emerald-600 font-bold bg-white/50 px-1.5 py-0.5 rounded">XONG</span>}
-            </div>
-            <h4 className="text-sm font-semibold text-gray-800 leading-snug mb-2 line-clamp-3 group-hover:text-emerald-700 transition-colors">
-              {day.topic}
-            </h4>
-            <span className="text-[10px] uppercase tracking-wider text-gray-400 mt-auto truncate">
-              {day.angle}
-            </span>
-            
-            {day.isLoading && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
-                <LoadingSpinner size="sm" />
-              </div>
-            )}
-          </button>
-        ))}
+        {calendar.map((day, index) => {
+          const { dayLabel, holidayName, holidayClass, badgeClass } = getDayInfo(index);
+          
+          return (
+            <button
+                key={day.day || index}
+                onClick={() => handleDayClick(index)}
+                className={`
+                flex flex-col h-40 p-3 text-left border rounded-2xl transition-all relative overflow-hidden group
+                ${day.details 
+                    ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/90 border-emerald-200/60 shadow-sm' 
+                    : 'glass-panel hover:border-emerald-300 hover:shadow-md'
+                }
+                ${holidayClass}
+                `}
+            >
+                {/* Header: Date & Status */}
+                <div className="flex justify-between items-start w-full mb-2">
+                    <div className="flex flex-col">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${badgeClass} mb-1 inline-block w-fit`}>
+                            {holidayName || `Ngày ${day.day}`}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-600">
+                            {dayLabel}
+                        </span>
+                    </div>
+                    {day.details && <span className="text-[10px] text-emerald-600 font-bold bg-white/80 px-1.5 py-0.5 rounded shadow-sm">✅</span>}
+                </div>
+
+                {/* Content Topic */}
+                <h4 className="text-xs font-semibold text-gray-800 leading-snug mb-2 line-clamp-3 group-hover:text-emerald-700 transition-colors flex-1">
+                    {day.topic}
+                </h4>
+                
+                {/* Footer: Angle */}
+                <div className="mt-auto pt-2 border-t border-gray-100 w-full">
+                    <span className="text-[9px] uppercase tracking-wider text-gray-400 truncate block">
+                        {day.angle}
+                    </span>
+                </div>
+                
+                {day.isLoading && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                    <LoadingSpinner size="sm" />
+                </div>
+                )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Premium Detail Modal */}
@@ -270,7 +355,14 @@ const Step2Calendar: React.FC<Step2Props> = ({
             <div className="p-6 border-b border-gray-200/50 flex justify-between items-start bg-white/80 backdrop-blur-xl z-10 shrink-0">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider rounded-full">Ngày {selectedDay.day}</span>
+                    {(() => {
+                        const info = getDayInfo(selectedDayIndex!);
+                        return (
+                            <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${info.badgeClass}`}>
+                                {info.holidayName ? `${info.holidayName} (${info.dayLabel})` : `${info.dayLabel}`}
+                            </span>
+                        );
+                    })()}
                     <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">{selectedDay.angle}</span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 leading-tight">{selectedDay.topic}</h3>
@@ -310,6 +402,40 @@ const Step2Calendar: React.FC<Step2Props> = ({
                   {/* TAB 1: CONTENT & MEDIA (Existing Logic) */}
                   {activeTab === 'content' && (
                     <div className="space-y-8 animate-fadeIn">
+                        
+                        {/* NEW: Viral Hooks Section */}
+                        {selectedDay.viralHooks && selectedDay.viralHooks.length > 0 && (
+                            <div className="glass-panel bg-white/60 p-6 rounded-2xl border-l-4 border-l-pink-500">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-bold text-pink-900 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                        🪝 Viral Hooks (Tối ưu CTR)
+                                    </h4>
+                                    <button 
+                                        onClick={() => selectedDayIndex !== null && onRegenerateHooks && onRegenerateHooks(selectedDayIndex)}
+                                        className="text-[10px] bg-pink-100 text-pink-600 px-2 py-1 rounded hover:bg-pink-200 transition-colors flex items-center gap-1 font-bold"
+                                        disabled={selectedDay.isLoading}
+                                    >
+                                        🔄 Làm mới Hook
+                                    </button>
+                                </div>
+                                <div className="grid gap-3">
+                                    {selectedDay.viralHooks.map((hook, idx) => (
+                                        <div key={idx} className="bg-pink-50/50 p-3 rounded-lg border border-pink-100 text-sm font-medium text-gray-800 flex gap-3 items-start">
+                                            <span className="text-pink-400 font-bold shrink-0">#{idx + 1}</span>
+                                            <span>{hook}</span>
+                                            <button 
+                                                onClick={() => navigator.clipboard.writeText(hook)}
+                                                className="ml-auto text-gray-300 hover:text-pink-500 transition-colors"
+                                                title="Copy"
+                                            >
+                                                📋
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Caption Section */}
                         <div className="glass-panel bg-white/60 p-6 rounded-2xl border-l-4 border-l-emerald-500">
                             <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
